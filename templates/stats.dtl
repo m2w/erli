@@ -1,0 +1,33 @@
+{% extends "base.dtl" %}
+
+{% block title %}statistics{% endblock %}
+
+{% block extra_js %}
+<script type="text/javascript" src="/static/worldmap.js"></script>
+<script type="text/javascript">
+$(document).ready(function(){
+    WorldMap({
+	{% if surl.countries %}
+	detail: {
+	    {% for country in surl.countries %}
+	    "{{country}}": "#980000",
+	    {% endfor %}
+	},
+	{% endif %}
+	id: "themap"
+    });
+});
+</script>
+{% endblock %}
+
+{% block heading %}usage statistics{% endblock %}
+
+{% block body %}
+<p>The shortened URL: <code>/{{ path }}</code> has been viewed a total of {{ total_clicks }} times, taking {{ unique_clicks }} visitors to <code>{{ target }}</code></p>
+
+<p>The visitors came from:</p>
+
+<canvas id="themap" width="800" height="325">
+
+<p>PS: these stats are updated hourly</p>
+{% endblock %}

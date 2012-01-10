@@ -1,0 +1,26 @@
+%%-*- mode: erlang -*-
+{application, erli,
+ [
+  {description, "erli - an Erlang URL shortener"},
+  {vsn, "0.1.1"},
+  {modules, [erli,
+	     erli_app,
+	     erli_error_handler,
+	     erli_stats,
+	     erli_storage,
+	     erli_sup,
+	     erli_util,
+	     path_resource,
+	     root_resource,
+	     static_resource]},
+  {registered, [erli_sup]},
+  {applications, [kernel,
+                  stdlib,
+                  inets,
+                  crypto,
+                  mochiweb,
+                  webmachine,
+		  mnesia]},
+  {mod, {erli_app, []}},
+  {env, []}
+ ]}.

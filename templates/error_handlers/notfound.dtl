@@ -1,0 +1,9 @@
+{% extends "base.dtl" %}
+
+{% block title %}resource not found{% endblock %}
+
+{% block heading %}resource not found{% endblock %}
+
+{% block body %}
+<p>The resource you were trying to reach doesn't exist.</p>
+{% endblock %}

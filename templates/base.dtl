@@ -1,0 +1,26 @@
+<!doctype html>
+<head>
+  <title>erli :: {% block title %}{% endblock %}</title>
+  <link rel="stylesheet" href="http://twitter.github.com/bootstrap/1.4.0/bootstrap.min.css" type="text/css" media="screen" />
+  <link rel="stylesheet" href="/static/erli.css" type="text/css" media="screen" /> <!-- slight modifications of the original bootstrap css-->
+  <script type="text/javascript" src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.7.1.min.js"></script>
+  <script type="text/javascript" src="http://twitter.github.com/bootstrap/1.4.0/bootstrap-twipsy.js"></script>
+  <script type="text/javascript" src="http://twitter.github.com/bootstrap/1.4.0/bootstrap-popover.js"></script>
+  <script type="text/javascript">
+    $(document).ready(function() {
+	$("#about_popover").popover();
+    });
+  </script>
+  {% block extra_js %}{% endblock %}
+</head>
+<body>
+  <div class="container">
+    <h1><a href="/">erli</a> <small>{% block heading %}{% endblock %}</small></h1>
+    {% block body %}{% endblock %}
+  </div>
+  <footer>
+    Created by Moritz Windelen 2012 <span id="about_popover" rel="popover" data-content="This is a weekend project of mine as a way of deepening my understanding of basic Erlang and to experiment the very cool Webmachine REST-kit." data-original-title="About erli">(why?)</span>
+  </footer>
+  {% block modal_content %}{% endblock %}
+</body>
+</html>
