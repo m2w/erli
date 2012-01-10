@@ -1,9 +1,7 @@
 -define(FLAG_LIMIT, 5). % number of reports before Target URLs are banned
 
--define(STAT_COLLECT_INTERVAL, 6000). % this breaks statistics... hardcore
--define(MAX_CONFLICTS, 5).
-%-define(STAT_COLLECT_INTERVAL, 3600000). % time in ms between calls to the parser script
-%-define(MAX_CONFLICTS, 100). % the maximal number of attempts to generate a new URL path
+-define(STAT_COLLECT_INTERVAL, 3600000). % time in ms between calls to the parser script
+-define(MAX_CONFLICTS, 100). % the maximal number of attempts to generate a new URL path
 
 -define(SCRIPT_NAME, "parse_eval.py").
 
