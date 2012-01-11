@@ -54,7 +54,7 @@ init([]) ->
     Web = {webmachine_mochiweb,
            {webmachine_mochiweb, start, [WebConfig]},
            permanent, 5000, worker, [mochiweb_socket_server]},
-    ParseEval = {erli_stats, {erli_stats, start_link, []},
+    Stats = {erli_stats, {erli_stats, start_link, []},
 		 permanent, 5000, worker, [erli_stats]},
-    Processes = [Web, ParseEval],
+    Processes = [Web, Stats],
     {ok, { {one_for_one, 10, 10}, Processes} }.
