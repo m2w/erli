@@ -20,13 +20,9 @@ To play around with it on localhost, just clone, `make compile`, `./start.sh` an
 
 ## todo
 
-security: 
-
-+ add a `retry-after` header on throttled requests
-
 usability:
 
-+ timeline of visits by hour
++ timeline of visits by (UTC) time-range: morning (6-11), mid-day (11-16), evening (16-22), night (22-6)
 + thumbnails on the landing pages?
 + ensure that no matter the `STATS_COLLECT_INTERVAL`, statistics don't get corrupted
 

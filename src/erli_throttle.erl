@@ -24,7 +24,7 @@
 
 -include("erli.hrl").
 
--record(state, {reqs_handled=0, span}).
+-record(state, {reqs_handled=0, span, last_reset}).
 
 start_link() ->
     case whereis(erli_throttle) of
@@ -45,28 +45,35 @@ throttle_req() ->
 %%% gen_server callbacks
 %%%=============================================================================
 init([?THROTTLE_TIME_SPAN]) when is_list(?THROTTLE_TIME_SPAN) ->
-    {_Date, {H, M, S}} = calendar:universal_time(),
+    {_Date, {H, M, S} = Time} = calendar:universal_time(),
     % calculate the initial offset to make the interval 'nice'
     case ?THROTTLE_TIME_SPAN of % for now these are hard-coded
 	"hour" ->
 	    S2Go = 60 - S,
 	    M2Go = 60 - M,
-	    T = (M2Go * 60 + S2Go) * 1000,
-	    {ok, #state{span=3600000}, T};
+	    T = M2Go * 60 + S2Go,
+	    erlang:send_after(T * 1000, self(), reset), % trigger the reset cycle
+	    {ok, #state{span=3600, 
+			last_reset=calendar:time_to_seconds(Time) - S - M * 60}};
 	"day" ->
-	    T = (86400 - calendar:time_to_seconds({H, M, S})) * 1000,
-	    {ok, #state{span=86400000}, T}
+	    T = 86400 - calendar:time_to_seconds({H, M, S}),
+	    erlang:send_after(T * 1000, self(), reset),
+	    {ok, #state{span=86400, last_reset=86400 - calendar:time_to_seconds(Time)}}
     end;
 init([?THROTTLE_TIME_SPAN]) ->
     % you're on your own here...
     {ok, #state{span=?THROTTLE_TIME_SPAN}, 0}.
 
-handle_call(is_throttled, _From, #state{reqs_handled=RH, _=_}= State) ->
-    C = RH+1,
+handle_call(is_throttled, _From, #state{reqs_handled=RH, 
+					span=Span, 
+					last_reset=LR}=State) ->
+    C = RH + 1,
     NewState = State#state{reqs_handled=C},
     if
 	C > ?REQ_LIMIT ->
-	    {reply, true, NewState};
+	    {_, CurTime} = calendar:universal_time(),
+	    RetryAfter = LR + Span - calendar:time_to_seconds(CurTime),
+	    {reply, {true, RetryAfter}, NewState};
 	C =< ?REQ_LIMIT ->
 	    {reply, false, NewState}
     end.
@@ -78,13 +85,12 @@ handle_cast(_Req, State) ->
 handle_info(reset, State) ->
     error_logger:info_msg("[ERLI] handled a total of ~p requests", 
 			  [State#state.reqs_handled]),
-    erlang:send_after(State#state.span, self(), reset),
-    {noreply, State#state{reqs_handled=0}};
+    {_, T} = calendar:universal_time(),
+    Time = calendar:time_to_seconds(T),
+    erlang:send_after(State#state.span * 1000, self(), reset),
+    {noreply, State#state{reqs_handled=0, last_reset=Time}};
 handle_info(timeout, State) ->
-    error_logger:info_msg("[ERLI] handled a total of ~p requests", 
-			  [State#state.reqs_handled]),
-    erlang:send_after(State#state.span, self(), reset),
-    {noreply, State#state{reqs_handled=0}}.
+    {noreply, State}.
 
 terminate(_Reason, _State) ->
     ok.
