@@ -7,6 +7,7 @@
 
 %% Webmachine resource function
 -export([init/1,
+	 service_available/2,
 	 allowed_methods/2,
 	 content_types_provided/2,
 	 post_is_create/2,
@@ -18,8 +19,10 @@
 -include("erli.hrl").
 
 init([]) ->
-    {{trace, "/tmp"}, #target{}}. % debug mode
-%    {ok, #target{}}.
+    {ok, #target{}}.
+
+service_available(RD, Ctx) ->
+    {not erli_throttle:throttle_req(), RD, Ctx}.
 
 allowed_methods(RD, Ctx) ->
     {['GET', 'POST'], RD, Ctx}.

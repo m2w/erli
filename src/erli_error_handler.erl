@@ -65,7 +65,6 @@ render_error_body(502, Req, _Reason) ->
 
 render_error_body(503, Req, _Reason) ->
     {ok, ReqState} = Req:add_response_header("Content-Type", "text/html"),
-    error_logger:error_msg("[WEBMACHINE] Cannot fulfill request: ~p~n",
-			  [Req]),
+    error_logger:error_msg("[WEBMACHINE] Throttle threshold reached.~n"),
     {ok, Content} = unavailable_dtl:render(),
     {Content, ReqState}.

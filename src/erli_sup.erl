@@ -55,6 +55,9 @@ init([]) ->
            {webmachine_mochiweb, start, [WebConfig]},
            permanent, 5000, worker, [mochiweb_socket_server]},
     Stats = {erli_stats, {erli_stats, start_link, []},
-		 permanent, 5000, worker, [erli_stats]},
-    Processes = [Web, Stats],
+	     permanent, 5000, worker, [erli_stats]},
+    
+    Throttle = {erli_throttle, {erli_throttle, start_link, []},
+		permanent, 5000, worker, [erli_throttle]},
+    Processes = [Web, Stats, Throttle],
     {ok, { {one_for_one, 10, 10}, Processes} }.

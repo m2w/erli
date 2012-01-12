@@ -11,7 +11,7 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/1,
+-export([start_link/0,
 	 throttle_req/0]).
 
 %% gen_server callbacks
@@ -26,12 +26,17 @@
 
 -record(state, {reqs_handled=0, span}).
 
-start_link([ThrottleTimeSpan]) ->
-    {ok, Pid} = gen_server:start_link(?MODULE, [ThrottleTimeSpan], []),
-    % register the name locally since we can't pass dynamic 
-    % information to our webmachine resource (limited to dispatcher args)
-    register(erli_throttle, Pid), 
-    {ok, Pid}.
+start_link() ->
+    case whereis(erli_throttle) of
+	undefined ->
+	    {ok, Pid} = gen_server:start_link(?MODULE, [?THROTTLE_TIME_SPAN], []),
+	    %register the name locally since we can't pass dynamic 
+	    %information to our webmachine resource (limited to dispatcher args)
+	    register(erli_throttle, Pid), 
+	    {ok, Pid};
+	Pid ->
+	    {ok, Pid}
+    end.
 
 throttle_req() ->
     gen_server:call(erli_throttle, is_throttled).
@@ -39,23 +44,22 @@ throttle_req() ->
 %%%=============================================================================
 %%% gen_server callbacks
 %%%=============================================================================
-init([ThrottleTimeSpan]) when is_list(ThrottleTimeSpan)->
+init([?THROTTLE_TIME_SPAN]) when is_list(?THROTTLE_TIME_SPAN) ->
     {_Date, {H, M, S}} = calendar:universal_time(),
     % calculate the initial offset to make the interval 'nice'
-    case ThrottleTimeSpan of % for now these are hard-coded
+    case ?THROTTLE_TIME_SPAN of % for now these are hard-coded
 	"hour" ->
 	    S2Go = 60 - S,
 	    M2Go = 60 - M,
 	    T = (M2Go * 60 + S2Go) * 1000,
-	    error_logger:warning_msg("T = ~p", [T]),
 	    {ok, #state{span=3600000}, T};
 	"day" ->
 	    T = (86400 - calendar:time_to_seconds({H, M, S})) * 1000,
 	    {ok, #state{span=86400000}, T}
     end;
-init([ThrottleTimeSpan]) ->
+init([?THROTTLE_TIME_SPAN]) ->
     % you're on your own here...
-    {ok, #state{span=ThrottleTimeSpan}, 0}.
+    {ok, #state{span=?THROTTLE_TIME_SPAN}, 0}.
 
 handle_call(is_throttled, _From, #state{reqs_handled=RH, _=_}= State) ->
     C = RH+1,
