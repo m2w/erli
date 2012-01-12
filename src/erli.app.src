@@ -2,7 +2,7 @@
 {application, erli,
  [
   {description, "erli - an Erlang URL shortener"},
-  {vsn, "0.1.1"},
+  {vsn, "0.1.3"},
   {modules, [erli,
 	     erli_app,
 	     erli_error_handler,
