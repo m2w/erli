@@ -22,7 +22,13 @@ init([]) ->
     {ok, #target{}}.
 
 service_available(RD, Ctx) ->
-    {not erli_throttle:throttle_req(), RD, Ctx}.
+    case erli_throttle:throttle_req() of
+	false ->
+	    {true, RD, Ctx};
+	 {true, RetryAfter}->
+	    NRD = wrq:set_resp_header("Retry-After", integer_to_list(RetryAfter), RD),
+	    {false, NRD, Ctx}
+	end.
 
 allowed_methods(RD, Ctx) ->
     {['GET', 'POST'], RD, Ctx}.
