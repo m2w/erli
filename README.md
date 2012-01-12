@@ -22,7 +22,7 @@ To play around with it on localhost, just clone, `make compile`, `./start.sh` an
 
 security: 
 
-+ implement throttling via 503 with `retry-after` (based on a simple request/interval scheme?)
++ add a `retry-after` header on throttled requests
 
 usability:
 
@@ -51,4 +51,7 @@ code quality:
 	-----------------
 	GET /path/stats  -> view stats for the path
 	-----------------
-	GET /path/check -> utility URL to facility 'low' overhead checking whether a path is already taken via ajax (@ W3C please give us an option to disable the automatic redirect on 30x!)
+	GET /path/check -> utility URL to facility 'low' overhead 
+	                   checking whether a path is already taken 
+					   via ajax (@ W3C please give us an option 
+					   to disable the automatic redirect on 30x!)
