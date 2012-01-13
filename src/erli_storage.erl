@@ -11,7 +11,7 @@
 	 read/1,
 	 delete/1,
 	 path_list/0,
-	 update_path_stats/4]).
+	 update_path_stats/5]).
 
 -include_lib("stdlib/include/qlc.hrl").
 -include("erli.hrl").
@@ -136,11 +136,11 @@ path_list() ->
 %% @doc Update a shortened URL's visit statistics
 %% @end
 %%------------------------------------------------------------------------------
-update_path_stats(Path, Countries, UniqueIPs, ClickCount) ->
+update_path_stats(Path, Countries, UniqueIPs, ClickCount, {_Date, {H, _M, _S}}) ->
     % grab the target record
     {ok, #target{paths=Paths, _=_} = Target} = read(Path#path.path),
     % filter out the important path (not doing this in the read call leaves it 'cheap'
-    {[#path{country_lst=CL, total_clicks=TC, unique_clicks=UC, _=_}=ThePath], 
+    {[#path{country_lst=CL, total_clicks=TC, unique_clicks=UC, timeslot_visits=TSV, _=_}=ThePath], 
      OtherPaths} = 
 	lists:partition(fun(P) -> 
 				Path =:= P 
@@ -157,10 +157,12 @@ update_path_stats(Path, Countries, UniqueIPs, ClickCount) ->
 		       sets:from_list(Countries)
 		      )
 		    ),
+    
     % update the path stats
     NewPath = ThePath#path{country_lst = CountryUnion, 
 			   unique_clicks = UC + UniqueClicks,
-			   total_clicks = TC + ClickCount},
+			   total_clicks = TC + ClickCount,
+			   timeslot_visits = classify_timeslot(H, ClickCount, TSV)},
     NewTarget = Target#target{paths = [NewPath | OtherPaths]},
     % flush to mnesia
     mnesia:dirty_write(NewTarget).
@@ -168,6 +170,19 @@ update_path_stats(Path, Countries, UniqueIPs, ClickCount) ->
 %%%=============================================================================
 %%% Internal functions
 %%%=============================================================================
+classify_timeslot(Hour, Clicks, TSV) ->
+    % classify the data according to a time-slot
+    case Hour of
+	H when H =< 6 ->
+	    TSV#timeslots.night + Clicks;
+	H when H > 6, H =< 12 ->
+	    TSV#timeslots.morning + Clicks;
+	H when H > 12, H =< 18 ->
+	    TSV#timeslots.afternoon + Clicks;
+	H when H > 18 ->
+	    TSV#timeslots.evening + Clicks
+    end.
+
 is_unique_for_path(Path, IP) ->
     case mnesia:dirty_read(visitor_ip, #visitor_ip{visitor_ip=IP, _='_'}) of
 	[] ->
@@ -237,7 +252,6 @@ make_target(TargetUrl, MatchingTarget) ->
 %%      the target URL.
 %% @end
 %%------------------------------------------------------------------------------
-
 make_unique_path(TargetUrl) ->
     make_unique_path(TargetUrl, 0).
 make_unique_path(TargetUrl, NrOfHashConflicts) ->

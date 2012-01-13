@@ -87,7 +87,7 @@ maybe_store(RD, Ctx) ->
 	    case erli_storage:put(Ctx#target.target) of
 		error ->
 		    {error, RD, Ctx}; % storage errors return a 500
-		{target_banned, _Target} ->
+		target_banned ->
 		    {{halt, 410}, RD, Ctx}; % banned target urls return a 410
 		{ok, Path} ->
 		    NRD = wrq:set_resp_header("Location", Path#path.path, RD),

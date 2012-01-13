@@ -150,7 +150,7 @@ from_json(RD, Ctx) ->
 			    {true, RD, Target};
 			conflict ->
 			    {{halt, 409}, RD, Ctx};
-			{target_banned, _Target} ->
+			target_banned ->
 			    {{halt, 410}, RD, Ctx}
 		    end
 		end;
