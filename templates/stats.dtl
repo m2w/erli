@@ -3,31 +3,60 @@
 {% block title %}statistics{% endblock %}
 
 {% block extra_js %}
-<script type="text/javascript" src="/static/worldmap.js"></script>
-<script type="text/javascript">
-$(document).ready(function(){
-    WorldMap({
-	{% if surl.countries %}
-	detail: {
-	    {% for country in surl.countries %}
-	    "{{country}}": "#980000",
-	    {% endfor %}
-	},
-	{% endif %}
-	id: "themap"
+  <script type="text/javascript" src="/static/worldmap.js"></script>
+  <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+  <script type="text/javascript">
+    google.load("visualization", "1", {packages:["corechart"]});
+    google.setOnLoadCallback(drawChart);
+    function drawChart() {
+        var data = new google.visualization.DataTable();
+        data.addColumn('string', 'Time of day');
+        data.addColumn('number', 'Number of clicks');
+        data.addRows([
+            ['night (0:00-6:00)', {{ timeslots.night }}],
+            ['morning (6:00-12:00)', {{ timeslots.morning }}],
+            ['afternoon (12:00-18:00)', {{ timeslots.afternoon }}],
+            ['evening (18:00-24:00)', {{ timeslots.evening }}],
+        ]);
+
+
+        var options = {
+            width: 800, height: 240,
+            title: 'Click frequency by time of day',
+	    vAxis: {minValue: 0, maxValue: 50},
+	    chartArea: {width: "75%", height: "75%"}
+        };
+
+        var chart = new google.visualization.ColumnChart(document.getElementById('chart_div'));
+        chart.draw(data, options);
+    }
+    $(document).ready(function(){
+	WorldMap({
+	    {% if surl.countries %}
+	    detail: {
+		{% for country in surl.countries %}
+		"{{country}}": "#980000",
+		{% endfor %}
+	    },
+	    {% endif %}
+	    id: "themap"
+	});
     });
-});
-</script>
+    </script>
 {% endblock %}
 
 {% block heading %}usage statistics{% endblock %}
 
 {% block body %}
-<p>The shortened URL: <code>/{{ path }}</code> has been viewed a total of {{ total_clicks }} times, taking {{ unique_clicks }} visitors to <code>{{ target }}</code></p>
+<p>The shortened URL: <code>/{{ path }}</code> has been viewed a total of {{ total_clicks }} times, taking {{ unique_clicks }} visitors to <a href="/{{ path }}"><code>{{ target }}</code></a></p>
 
 <p>The visitors came from:</p>
 
-<canvas id="themap" width="800" height="325">
+<div>
+  <canvas id="themap" width="800" height="325">
+</div>
+
+<div id="chart_div"></div>
 
 <p>PS: these stats are updated hourly</p>
 {% endblock %}

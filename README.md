@@ -28,6 +28,7 @@ usability:
 
 code quality:
 
++ enforce the Erlang coding standards: [http://www.erlang.se/doc/programming_rules.shtml](http://www.erlang.se/doc/programming_rules.shtml)
 + eunit tests
 
 ## the api

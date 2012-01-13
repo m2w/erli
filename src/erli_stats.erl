@@ -70,8 +70,8 @@ grab_path_stats(Port, [Path | RemPaths]) ->
 		{reschedule, Time} ->
 		    grab_path_stats(Port, []),
 		    {reschedule, Time};
-		{Countries, UniqueIPs, ClickCount} ->
-		    erli_storage:update_path_stats(Path, Countries, UniqueIPs, ClickCount),
+		{Countries, UniqueIPs, ClickCount, TimeStamp} ->
+		    erli_storage:update_path_stats(Path, Countries, UniqueIPs, ClickCount, TimeStamp),
 		    grab_path_stats(Port, RemPaths)
 	    end
     after

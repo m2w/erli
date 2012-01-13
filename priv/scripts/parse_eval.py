@@ -38,7 +38,7 @@ class ParseEval(Protocol):
             countries.add(gi.country_code_by_addr(ip))
             ips.add(ip)
             total_visits += 1
-        return list(countries), list(ips), total_visits
+        return list(countries), list(ips), total_visits, log_timestamp
 
 
 if __name__ == "__main__":
