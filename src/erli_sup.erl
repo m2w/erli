@@ -14,13 +14,19 @@
 %% supervisor callbacks
 -export([init/1]).
 
+%%------------------------------------------------------------------------------
 %% @spec start_link() -> ServerRet
 %% @doc API for starting the supervisor.
+%% @end
+%%------------------------------------------------------------------------------
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
+%%------------------------------------------------------------------------------
 %% @spec upgrade() -> ok
 %% @doc Add processes if necessary.
+%% @end
+%%------------------------------------------------------------------------------
 upgrade() ->
     {ok, {_, Specs}} = init([]),
 
@@ -38,8 +44,11 @@ upgrade() ->
     [supervisor:start_child(?MODULE, Spec) || Spec <- Specs],
     ok.
 
+%%------------------------------------------------------------------------------
 %% @spec init([]) -> SupervisorTree
 %% @doc supervisor callback.
+%% @end
+%%------------------------------------------------------------------------------
 init([]) ->
     Ip = case os:getenv("WEBMACHINE_IP") of false -> "0.0.0.0"; Any -> Any end,
     {ok, Dispatch} = file:consult(filename:join(
@@ -56,8 +65,11 @@ init([]) ->
            permanent, 5000, worker, [mochiweb_socket_server]},
     Stats = {erli_stats, {erli_stats, start_link, []},
 	     permanent, 5000, worker, [erli_stats]},
-    
-    Throttle = {erli_throttle, {erli_throttle, start_link, []},
+    % currently supported are "hour" | "day"
+    % the throttle interval indicates over which time frame requests are 
+    % throttled => e.g N Requests / ThrottleInterval
+    ThrottleInterval = "hour",
+    Throttle = {erli_throttle, {erli_throttle, start_link, [ThrottleInterval]},
 		permanent, 5000, worker, [erli_throttle]},
     Processes = [Web, Stats, Throttle],
     {ok, { {one_for_one, 10, 10}, Processes} }.

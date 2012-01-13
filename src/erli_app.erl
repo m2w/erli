@@ -9,13 +9,18 @@
 -behaviour(application).
 -export([start/2,stop/1]).
 
-
+%%------------------------------------------------------------------------------
 %% @spec start(_Type, _StartArgs) -> ServerRet
 %% @doc application start callback for erli.
+%% @end
+%%------------------------------------------------------------------------------
 start(_Type, _StartArgs) ->
     erli_sup:start_link().
 
+%%------------------------------------------------------------------------------
 %% @spec stop(_State) -> ServerRet
 %% @doc application stop callback for erli.
+%% @end
+%%------------------------------------------------------------------------------
 stop(_State) ->
     ok.

@@ -22,11 +22,13 @@ init([]) ->
     {ok, #target{}}.
 
 service_available(RD, Ctx) ->
-    case erli_throttle:throttle_req() of
+    case erli_throttle:check() of
 	false ->
 	    {true, RD, Ctx};
 	 {true, RetryAfter}->
-	    NRD = wrq:set_resp_header("Retry-After", integer_to_list(RetryAfter), RD),
+	    NRD = wrq:set_resp_header("Retry-After", 
+				      integer_to_list(RetryAfter), 
+				      RD),
 	    {false, NRD, Ctx}
 	end.
 
@@ -50,18 +52,18 @@ process_post(RD, Ctx) ->
 	    from_json(NRD, Ctx);
 	"application/x-www-form-urlencoded" ->
 	    from_urlencoded(NRD, Ctx);
-	_ ->
+	_NonAcceptableContentType ->
 	    {{halt, 415}, NRD, Ctx}
     end.
 
 %%%=============================================================================
-%%% Internal functions
+%%% Accept Handlers
 %%%=============================================================================
 from_json(RD, Ctx) ->
     case mochijson2:decode(wrq:req_body(RD)) of
 	{struct, [{<<"url">>, TargetUrl}, {<<"tou_checked">>, true}]} ->
 	    maybe_store(RD, #target{target=TargetUrl});
-	_ ->
+	_NonConformingBody ->
 	    {{halt, 400}, RD, Ctx}
     end.
 
@@ -70,24 +72,35 @@ from_urlencoded(RD, Ctx) ->
 	true ->
 	    case wrq:get_qs_value("url", RD) of
 		undefined ->
-		    {{halt, 400}, RD, Ctx}; % the duplication of the 400 here is 'ungood'
+		    {{halt, 400}, RD, Ctx}; % the duplication of the 400 here 
+		                            % is 'ungood'
 		TargetUrl ->
 		    maybe_store(RD, #target{target=TargetUrl})
 	    end;
-	_ ->
+	undefined ->
 	    {{halt, 400}, RD, Ctx}
     end.
 
+%%%=============================================================================
+%%% Internal functions
+%%%=============================================================================
+%%------------------------------------------------------------------------------
+%% @private
+%% @spec maybe_store(RD::wm_reqdata{}, Ctx::#state{}) -> true | false
+%% @doc Returns whether the creation of a new path was successful.
+%% @end
+%%------------------------------------------------------------------------------
 maybe_store(RD, Ctx) ->
     case erli_util:is_valid_url(Ctx#target.target) of
 	false ->
-	    % TODO: add request body which contains some kind of info (e.g. needs a schema definition)
+	    % TODO: add request body which contains some kind of info 
+	    % (e.g. needs a schema definition)
 	    {{halt, 400}, RD, Ctx};
 	true ->
 	    case erli_storage:put(Ctx#target.target) of
-		error ->
+		{error, path_generation_failed} ->
 		    {error, RD, Ctx}; % storage errors return a 500
-		target_banned ->
+		{error, target_banned} ->
 		    {{halt, 410}, RD, Ctx}; % banned target urls return a 410
 		{ok, Path} ->
 		    NRD = wrq:set_resp_header("Location", Path#path.path, RD),

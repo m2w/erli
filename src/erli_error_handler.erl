@@ -43,7 +43,8 @@ render_error_body(500, Req, Reason) ->
         {error, {exit, normal, _Stack}} ->
             ok;
         _ ->
-            error_logger:error_msg("[WEBMACHINE] Internal Error: path=~p~n~p~n", [Path, Reason])
+            error_logger:error_msg("[WEBMACHINE] Internal Error: "
+				   "path=~p~n~p~n", [Path, Reason])
     end,
     {ok, Content} = serverfault_dtl:render(),
     {Content, ReqState};

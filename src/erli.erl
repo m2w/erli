@@ -15,9 +15,11 @@ ensure_started(App) ->
         {error, {already_started, App}} ->
             ok
     end.
-
+%%------------------------------------------------------------------------------
 %% @spec start_link() -> {ok,Pid::pid()}
 %% @doc Starts the app for inclusion in a supervisor tree
+%% @end
+%%------------------------------------------------------------------------------
 start_link() ->
     ensure_started(inets),
     ensure_started(crypto),
@@ -29,8 +31,11 @@ start_link() ->
     ensure_started(webmachine),
     erli_sup:start_link().
 
+%%------------------------------------------------------------------------------
 %% @spec start() -> ok
 %% @doc Start the erli server.
+%% @end
+%%------------------------------------------------------------------------------
 start() ->
     ensure_started(inets),
     ensure_started(crypto),
@@ -42,8 +47,11 @@ start() ->
     ensure_started(webmachine),
     application:start(erli).
 
+%%------------------------------------------------------------------------------
 %% @spec stop() -> ok
 %% @doc Stop the erli server.
+%% @end
+%%------------------------------------------------------------------------------
 stop() ->
     Res = application:stop(erli),
     application:stop(webmachine),

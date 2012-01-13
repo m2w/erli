@@ -3,16 +3,14 @@
 
 %% @doc gen_server that handle throttling related state
 
-% TODO: check if this could/should be merged with erli_util
-
 -module(erli_throttle).
 -author('Moritz Windelen <moritz@tibidat.com>').
 
 -behaviour(gen_server).
 
 %% API
--export([start_link/0,
-	 throttle_req/0]).
+-export([start_link/1,
+	 check/0]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -26,10 +24,15 @@
 
 -record(state, {reqs_handled=0, span, last_reset}).
 
-start_link() ->
+%%------------------------------------------------------------------------------
+%% @spec start_link(Interval::string()) -> {ok, Pid}
+%% @doc Api call to initialize the gen_server, possibly also register it by name.
+%% @end
+%%------------------------------------------------------------------------------
+start_link(Interval) ->
     case whereis(erli_throttle) of
 	undefined ->
-	    {ok, Pid} = gen_server:start_link(?MODULE, [?THROTTLE_TIME_SPAN], []),
+	    {ok, Pid} = gen_server:start_link(?MODULE, [Interval], []),
 	    %register the name locally since we can't pass dynamic 
 	    %information to our webmachine resource (limited to dispatcher args)
 	    register(erli_throttle, Pid), 
@@ -38,16 +41,22 @@ start_link() ->
 	    {ok, Pid}
     end.
 
-throttle_req() ->
-    gen_server:call(erli_throttle, is_throttled).
+%%------------------------------------------------------------------------------
+%% @spec check() -> {true, ::integer()} | false
+%% @doc Returns whether a request should be throttled, and if so, when it the
+%%      server should be ready to accept new requests in seconds.
+%% @end
+%%------------------------------------------------------------------------------
+check() ->
+    gen_server:call(erli_throttle, should_throttle).
 
 %%%=============================================================================
 %%% gen_server callbacks
 %%%=============================================================================
-init([?THROTTLE_TIME_SPAN]) when is_list(?THROTTLE_TIME_SPAN) ->
+init([Interval]) when is_list(Interval) ->
     {_Date, {H, M, S} = Time} = calendar:universal_time(),
     % calculate the initial offset to make the interval 'nice'
-    case ?THROTTLE_TIME_SPAN of % for now these are hard-coded
+    case Interval of % for now these are hard-coded
 	"hour" ->
 	    S2Go = 60 - S,
 	    M2Go = 60 - M,
@@ -58,13 +67,14 @@ init([?THROTTLE_TIME_SPAN]) when is_list(?THROTTLE_TIME_SPAN) ->
 	"day" ->
 	    T = 86400 - calendar:time_to_seconds({H, M, S}),
 	    erlang:send_after(T * 1000, self(), reset),
-	    {ok, #state{span=86400, last_reset=86400 - calendar:time_to_seconds(Time)}}
+	    {ok, #state{span=86400, 
+			last_reset=86400 - calendar:time_to_seconds(Time)}}
     end;
-init([?THROTTLE_TIME_SPAN]) ->
+init([Interval]) ->
     % you're on your own here...
-    {ok, #state{span=?THROTTLE_TIME_SPAN}, 0}.
+    {ok, #state{span=Interval}, 0}.
 
-handle_call(is_throttled, _From, #state{reqs_handled=RH, 
+handle_call(should_throttle, _From, #state{reqs_handled=RH, 
 					span=Span, 
 					last_reset=LR}=State) ->
     C = RH + 1,

@@ -27,7 +27,7 @@ init([]) ->
     {ok, #target{}}.
 
 service_available(RD, Ctx) ->
-    case erli_throttle:throttle_req() of
+    case erli_throttle:check() of
 	false ->
 	    {true, RD, Ctx};
 	 {true, RetryAfter}->
@@ -61,11 +61,18 @@ delete_completed(RD, Ctx) ->
 content_types_provided(RD, Ctx) ->
     {[{"text/html", to_html}, {"application/json", to_json}], RD, Ctx}.
 
+content_types_accepted(RD, Ctx) ->
+    NRD = wrq:set_max_recv_body(1024, RD), % no need to accept large bodies
+    {[{"application/json", from_json}], NRD, Ctx}.
+
+%%%=============================================================================
+%%% Accept Handlers
+%%%=============================================================================
 to_html(RD, Ctx) ->
     case wrq:disp_path(RD) of
 	"" ->
 	    handle_path(html, RD, Ctx); % landing page || redir
-	_ ->
+	_Path ->
 	    handle_path_subreq(html, RD, Ctx) % /path/stats || /path/report
     end.
 
@@ -73,19 +80,52 @@ to_json(RD, Ctx) ->
     case wrq:disp_path(RD) of
 	"" ->
 	    handle_path(json, RD, Ctx); % landing page || redir
-	_ ->
+	_Path ->
 	    handle_path_subreq(json, RD, Ctx) % /path/stats || /path/report
     end.
 
+%%%=============================================================================
+%%% Content-Type Handler
+%%%=============================================================================
+from_json(RD, Ctx) ->
+    case mochijson2:decode(wrq:req_body(RD)) of
+	{struct, [{<<"url">>, TargetUrl}, {<<"tou_checked">>, true}]} ->
+	    case erli_util:is_valid_url(TargetUrl) of
+		false ->
+		    % TODO: add request body which contains some kind of info (e.g. needs a schema definition)
+		    {{halt, 400}, RD, Ctx};
+		true ->
+		    case erli_storage:put(TargetUrl, 
+					  wrq:path_info(path, RD)) of
+			{ok, Target} ->
+			    {true, RD, Target};
+			{error, conflict} ->
+			    {{halt, 409}, RD, Ctx};
+			{error, target_banned} ->
+			    {{halt, 410}, RD, Ctx}
+		    end
+		end;
+	_ ->
+	    {{halt, 400}, RD, Ctx}
+    end.
+
+%%%=============================================================================
+%%% Internal functions
+%%%=============================================================================
 handle_path(Type, RD, Ctx) ->
-    NRD = wrq:set_resp_header("Location", binary_to_list(Ctx#target.target), RD),
+    NRD = wrq:set_resp_header("Location", 
+			      binary_to_list(Ctx#target.target), 
+			      RD),
     case wrq:get_qs_value("landing", RD) of
 	undefined -> {{halt, 302}, NRD, Ctx};
-	_ -> 
+	_Value -> 
 	    case Type of
 		html ->
-		    {ok, Content} = landing_dtl:render([{target, Ctx#target.target},
-							{path, wrq:path_info(path)}]),
+		    {ok, Content} = landing_dtl:render([{target, 
+							 Ctx#target.target},
+							{path, 
+							 wrq:path_info(path)}
+						       ]),
 		    {Content, NRD, Ctx};
 		json ->
 		    Content = mochijson2:encode([{target, Ctx#target.target}]),
@@ -145,28 +185,3 @@ handle_path_subreq(Type, RD, Ctx) ->
 	    {{halt, 404}, RD, Ctx}
     end.
 
-content_types_accepted(RD, Ctx) ->
-    NRD = wrq:set_max_recv_body(1024, RD), % no need to accept large bodies
-    {[{"application/json", from_json}], NRD, Ctx}.
-
-from_json(RD, Ctx) ->
-    case mochijson2:decode(wrq:req_body(RD)) of
-	{struct, [{<<"url">>, TargetUrl}, {<<"tou_checked">>, true}]} ->
-	    case erli_util:is_valid_url(TargetUrl) of
-		false ->
-		    % TODO: add request body which contains some kind of info (e.g. needs a schema definition)
-		    {{halt, 400}, RD, Ctx};
-		true ->
-		    case erli_storage:put(TargetUrl, 
-					  wrq:path_info(path, RD)) of
-			{ok, Target} ->
-			    {true, RD, Target};
-			conflict ->
-			    {{halt, 409}, RD, Ctx};
-			target_banned ->
-			    {{halt, 410}, RD, Ctx}
-		    end
-		end;
-	_ ->
-	    {{halt, 400}, RD, Ctx}
-    end.

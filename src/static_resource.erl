@@ -9,7 +9,7 @@
 -export([init/1,
 	 allowed_methods/2,
 	 content_types_provided/2]).
-% Content-Type handlers
+% Accept handler
 -export([maybe_provide_content/2]).
 
 -include_lib("webmachine/include/webmachine.hrl").
@@ -17,39 +17,38 @@
 
 -record(state, {basedir, fpath}).
 
-
 init([StaticDir]) ->
     {ok, App} = application:get_application(),
     BaseDir = filename:join(code:priv_dir(App), StaticDir),
     {ok, #state{basedir=BaseDir}}.
 
-allowed_methods(ReqData, Context) ->
-    {['GET'], ReqData, Context}.
+allowed_methods(RD, Ctx) ->
+    {['GET'], RD, Ctx}.
 
-content_types_provided(ReqData, Context) ->
-    {[{webmachine_util:guess_mime(wrq:disp_path(ReqData)), maybe_provide_content}], 
-     ReqData, 
-     Context#state{fpath=determine_fpath(ReqData, Context)}}.
+content_types_provided(RD, Ctx) ->
+    {[{webmachine_util:guess_mime(wrq:disp_path(RD)), maybe_provide_content}], 
+     RD, 
+     Ctx#state{fpath=determine_fpath(RD, Ctx)}}.
 
 %%%=============================================================================
-%%% Content Handler
+%%% Content Provider
 %%%=============================================================================
 %%------------------------------------------------------------------------------
 %% @doc Determines whether to provide the requested resource, based on whether
 %%      it exists and is 'safe'.
 %% @end
 %%------------------------------------------------------------------------------
-maybe_provide_content(ReqData, #state{fpath=Path, _=_}=Context) ->
+maybe_provide_content(RD, #state{fpath=Path, _=_}=Ctx) ->
     case Path of
 	undefined ->
-	    {{halt, 403}, ReqData, Context};
+	    {{halt, 403}, RD, Ctx};
 	P ->
-	    FPath = filename:join(Context#state.basedir, P),
+	    FPath = filename:join(Ctx#state.basedir, P),
 	    case filelib:is_regular(FPath) of
 		true ->
-		    fetch_content(ReqData, Context#state{fpath=FPath});
+		    fetch_content(RD, Ctx#state{fpath=FPath});
 		false ->
-		    {{halt, 404}, ReqData, Context}
+		    {{halt, 404}, RD, Ctx}
 	    end
     end.
 
@@ -57,21 +56,27 @@ maybe_provide_content(ReqData, #state{fpath=Path, _=_}=Context) ->
 %%% Internal functions
 %%%=============================================================================
 %%------------------------------------------------------------------------------
-%% @doc Returns either a sanitized path for a resource or undefined.
+%% @private
+%% @spec determine_fpath(RD::#wm_reqdata{}, Ctx::#state{}) -> undefined |
+%%                                                             ::string()
+%% @doc Returns either a sanitized path for to a resource or undefined.
 %% @end
 %%------------------------------------------------------------------------------
-determine_fpath(ReqData, Context) ->
-    case mochiweb_util:safe_relative_path(wrq:disp_path(ReqData)) of
+determine_fpath(RD, Ctx) ->
+    case mochiweb_util:safe_relative_path(wrq:disp_path(RD)) of
 	undefined ->
 	    undefined;
 	Path ->
-	    filename:join(Context#state.basedir, Path)
+	    filename:join(Ctx#state.basedir, Path)
     end.
 
 %%------------------------------------------------------------------------------
+%% @private
+%% @spec fetch_content(RD::#wm_reqdata{}, Ctx::#state{}) -> 
+%%                                           {binary(), #wm_reqdata{}, #state{}}
 %% @doc Returns the resource contents.
 %% @end
 %%------------------------------------------------------------------------------
-fetch_content(ReqData, Context) ->    
-    {ok, Content} = file:read_file(Context#state.fpath),
-    {Content, ReqData, Context}.
+fetch_content(RD, Ctx) ->    
+    {ok, Content} = file:read_file(Ctx#state.fpath),
+    {Content, RD, Ctx}.

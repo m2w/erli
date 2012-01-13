@@ -23,6 +23,11 @@
 
 -include("erli.hrl").
 
+%%------------------------------------------------------------------------------
+%% @spec start_link() -> {ok, Pid}
+%% @doc Api call to initialize the gen_server.
+%% @end
+%%------------------------------------------------------------------------------
 start_link() ->
     gen_server:start_link(?MODULE, [], []).
 
@@ -40,9 +45,11 @@ handle_cast(_Req, State) ->
 
 handle_info(parse_eval, State) ->
     {ok, App} = application:get_application(),
-    PyCmd = "python -u " ++ filename:join([code:priv_dir(App), "scripts", ?SCRIPT_NAME]),
+    PyCmd = "python -u " ++ filename:join([code:priv_dir(App), 
+					   "scripts", 
+					   ?SCRIPT_NAME]),
     Port = open_port({spawn, PyCmd}, [{packet, 1}, binary, use_stdio]),
-    case grab_path_stats(Port, erli_storage:path_list()) of
+    case retrieve_path_stats(Port, erli_storage:path_list()) of
 	true ->
 	    erlang:send_after(?STAT_COLLECT_INTERVAL, self(), parse_eval);
 	{reschedule, Time} ->
@@ -62,24 +69,40 @@ code_change(_OldVsn, State, _Extra) ->
 %%%=============================================================================
 %%% Internal functions
 %%%=============================================================================
-grab_path_stats(Port, [Path | RemPaths]) ->
+%%------------------------------------------------------------------------------
+%% @private
+%% @spec retrieve_path_stats(Port::port(), ::list()) -> 
+%%                                               true |
+%%                                               {reschedule, Time::integer()} |
+%%                                               {error, timeout}
+%% @doc Communicates with the port to recursively collect the statistics for all
+%%      paths, updating mnesia accordingly. The port may/can ask the process to
+%%      reschedule, for example if there is no log file to parse at this moment.
+%% @end
+%%------------------------------------------------------------------------------
+retrieve_path_stats(Port, [Path | RemPaths]) ->
     port_command(Port, term_to_binary({path, Path#path.path})),
     receive
         {Port, {data, RespData}} ->
 	    case binary_to_term(RespData) of
 		{reschedule, Time} ->
-		    grab_path_stats(Port, []),
+		    retrieve_path_stats(Port, []), % close the port before
+						   % rescheduling 
 		    {reschedule, Time};
 		{Countries, UniqueIPs, ClickCount, TimeStamp} ->
-		    erli_storage:update_path_stats(Path, Countries, UniqueIPs, ClickCount, TimeStamp),
-		    grab_path_stats(Port, RemPaths)
+		    erli_storage:update_path_stats(Path, 
+						   Countries, 
+						   UniqueIPs, 
+						   ClickCount, 
+						   TimeStamp),
+		    retrieve_path_stats(Port, RemPaths)
 	    end
     after
         5000 ->
-	    error_logger:warning_msg("[ERLI] ~s timed out on grab_path_stats/2"
+	    error_logger:warning_msg("[ERLI] ~s timed out on retrieve_path_stats/2"
 				     " for path ~s~n", 
 				     [?MODULE, Path]),
             {error, timeout}
     end;
-grab_path_stats(Port, []) ->
+retrieve_path_stats(Port, []) ->
     port_close(Port).
