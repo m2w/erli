@@ -41,7 +41,7 @@ put(TargetUrl) ->
       fun() -> 
 	      Table = mnesia:table(target),
 	      QueryHandle = qlc:q([T || T <- Table, 
-					T#target.target =:= binary_to_list(TargetUrl)]),
+					T#target.target =:= TargetUrl]),
 	      qlc:eval(QueryHandle)
       end),
     make_target(TargetUrl, MatchingTarget).
@@ -55,13 +55,13 @@ put(TargetUrl, PathS) ->
 		  fun() -> 
 			  Table = mnesia:table(target),
 			  QueryHandle = qlc:q([T || T <- Table, 
-						    T#target.target =:= binary_to_list(TargetUrl)]),
+						    T#target.target =:= TargetUrl]),
 			  qlc:eval(QueryHandle)
 		  end),
 	    case MatchingTarget of
 		[T] when T#target.rep_num > ?FLAG_LIMIT ->
 		    target_banned;
-		[#target{paths=[ExistingPaths], _=_} = T] ->
+		[#target{paths=ExistingPaths, _=_} = T] ->
 		    NewTarget = T#target{paths=[Path|ExistingPaths]},
 		    {atomic, _Ret} = mnesia:transaction(
 				       fun() ->
@@ -159,10 +159,10 @@ update_path_stats(Path, Countries, UniqueIPs, ClickCount, {_Date, {H, _M, _S}}) 
 		    ),
     
     % update the path stats
-    NewPath = ThePath#path{country_lst = CountryUnion, 
-			   unique_clicks = UC + UniqueClicks,
-			   total_clicks = TC + ClickCount,
-			   timeslot_visits = classify_timeslot(H, ClickCount, TSV)},
+    NewPath = ThePath#path{country_lst=CountryUnion, 
+			   unique_clicks=UC + UniqueClicks,
+			   total_clicks=TC + ClickCount,
+			   timeslot_visits=classify_timeslot(H, ClickCount, TSV)},
     NewTarget = Target#target{paths = [NewPath | OtherPaths]},
     % flush to mnesia
     mnesia:dirty_write(NewTarget).
@@ -170,17 +170,19 @@ update_path_stats(Path, Countries, UniqueIPs, ClickCount, {_Date, {H, _M, _S}}) 
 %%%=============================================================================
 %%% Internal functions
 %%%=============================================================================
-classify_timeslot(Hour, Clicks, TSV) ->
+classify_timeslot(Hour, 
+		  Clicks, 
+		  #timeslots{night=N, morning=M, afternoon=A, evening=E}=TS) ->
     % classify the data according to a time-slot
     case Hour of
 	H when H =< 6 ->
-	    TSV#timeslots.night + Clicks;
+	    TS#timeslots{night=N + Clicks};
 	H when H > 6, H =< 12 ->
-	    TSV#timeslots.morning + Clicks;
+	    TS#timeslots{morning=M + Clicks};
 	H when H > 12, H =< 18 ->
-	    TSV#timeslots.afternoon + Clicks;
+	    TS#timeslots{afternoon=A + Clicks};
 	H when H > 18 ->
-	    TSV#timeslots.evening + Clicks
+	    TS#timeslots{evening=E + Clicks}
     end.
 
 is_unique_for_path(Path, IP) ->
@@ -207,7 +209,7 @@ path_in_target(TargetPaths, SearchPath) ->
     case Path of
 	[] ->
 	    false;
-	_ ->
+	_Any ->
 	    true
     end.
 
@@ -215,7 +217,7 @@ make_target(TargetUrl, MatchingTarget) ->
     case MatchingTarget of
 	[T] when T#target.rep_num > ?FLAG_LIMIT ->
 	    target_banned;
-	[#target{paths=[ExistingPaths], _=_} = T] ->
+	[#target{paths=ExistingPaths, _=_} = T] ->
 	    case make_unique_path(TargetUrl) of
 		error ->
 		    error;

@@ -106,15 +106,28 @@ handle_path_subreq(Type, RD, Ctx) ->
 						      {path, list_to_binary(ThePath#path.path)}, 
 						      {total_clicks, ThePath#path.total_clicks}, 
 						      {unique_clicks, ThePath#path.unique_clicks}, 
-						      {country_lst, ThePath#path.country_lst}]),
+						      {country_lst, ThePath#path.country_lst},
+						      {timeslots, 
+						       mochiweb_util:record_to_proplist(
+							 ThePath#path.timeslot_visits, 
+							 record_info(fields, timeslots)
+							)
+						      }]),
 		    {Content, RD, Ctx};
 		json ->
 		    % TODO: switch from mochijson2 to https://github.com/davisp/eep0018 
-		    Content = mochijson2:encode({struct, [{target, Ctx#target.target}, 
-						 {path, list_to_binary(ThePath#path.path)}, 
-						 {total_clicks, ThePath#path.total_clicks}, 
-						 {unique_clicks, ThePath#path.unique_clicks}, 
-						 {country_lst, ThePath#path.country_lst}]}),
+		    Content = mochijson2:encode({struct, 
+						 [{target, Ctx#target.target}, 
+						  {path, list_to_binary(ThePath#path.path)}, 
+						  {total_clicks, ThePath#path.total_clicks}, 
+						  {unique_clicks, ThePath#path.unique_clicks}, 
+						  {country_lst, ThePath#path.country_lst},
+						  {timeslots, 
+						   mochiweb_util:record_to_proplist(
+						     ThePath#path.timeslot_visits, 
+						     record_info(fields, timeslots)
+						    )}
+						 ]}),
 		    {Content, RD, Ctx}
 	    end;
 	"report" ->
@@ -127,7 +140,7 @@ handle_path_subreq(Type, RD, Ctx) ->
 		    {{halt, 202}, RD, Ctx} % with a 202
 	    end;
 	"check" ->
-	    {{halt, 200}, RD, Ctx}; % fake landing for low overhead checking of path availability
+	    {{halt, 200}, RD, Ctx}; % landing for lower overhead checking of path availability
 	_ ->
 	    {{halt, 404}, RD, Ctx}
     end.

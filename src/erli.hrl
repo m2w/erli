@@ -9,7 +9,7 @@
 -define(SCRIPT_NAME, "parse_eval.py").
 
 -record(target, {target, paths=[], reported=0, rep_num=0}).
--record(timeslots, {timeslots, night=0, morning=0, afternoon=0, evening=0}).
+-record(timeslots, {night=0, morning=0, afternoon=0, evening=0}).
 -record(path, {path, total_clicks=0, unique_clicks=0, country_lst=[], 
 	       timeslot_visits=#timeslots{}}).
 -record(visitor_ip, {visitor_ip, paths=[]}).
