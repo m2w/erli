@@ -47,7 +47,7 @@ code quality:
 	-----------------
 	GET /path/stats  -> view stats for the path
 	-----------------
-	GET /path/check -> utility URL to facility 'low' overhead 
-	                   checking whether a path is already taken 
-					   via ajax (@ W3C please give us an option 
-					   to disable the automatic redirect on 30x!)
+	GET /path/check -> utility URL to facilitate 'low' overhead 
+	                   checking of whether a path is already used 
+			   via ajax (@ W3C please give us an option 
+			   to disable the automatic redirect on 30x!)
