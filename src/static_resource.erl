@@ -1,5 +1,5 @@
 %% @author Moritz Windelen <moritz@tibidat.com>
-%% @copyright 2011 Moritz Windelen.
+%% @copyright 2011-2012 Moritz Windelen.
 %% @doc Simplistic static content resource.
 
 -module(static_resource).
@@ -34,6 +34,10 @@ content_types_provided(RD, Ctx) ->
 %%% Content Provider
 %%%=============================================================================
 %%------------------------------------------------------------------------------
+%% @spec maybe_provide_content(RD::wrq:reqdata(), Ctx::state()) ->
+%%                                  {{halt, 403}, wrq:reqdata(), state()} |
+%%                                  {binary(), wrq:reqdata(), state()}  | 
+%%                                  {{halt, 404}, wrq:reqdata(), state()}
 %% @doc Determines whether to provide the requested resource, based on whether
 %%      it exists and is 'safe'.
 %% @end
@@ -44,12 +48,7 @@ maybe_provide_content(RD, #state{fpath=Path, _=_}=Ctx) ->
 	    {{halt, 403}, RD, Ctx};
 	P ->
 	    FPath = filename:join(Ctx#state.basedir, P),
-	    case filelib:is_regular(FPath) of
-		true ->
-		    fetch_content(RD, Ctx#state{fpath=FPath});
-		false ->
-		    {{halt, 404}, RD, Ctx}
-	    end
+	    maybe_fetch_content(FPath, RD, Ctx)
     end.
 
 %%%=============================================================================
@@ -57,8 +56,25 @@ maybe_provide_content(RD, #state{fpath=Path, _=_}=Ctx) ->
 %%%=============================================================================
 %%------------------------------------------------------------------------------
 %% @private
-%% @spec determine_fpath(RD::#wm_reqdata{}, Ctx::#state{}) -> undefined |
-%%                                                             ::string()
+%% @spec maybe_fetch_content(FPath::string(), RD::wrq:reqdata(), Ctx::state())
+%%       -> {binary(), wrq:reqdata(), state()} | 
+%%          {{halt, 404}, wrq:reqdata(), state()}
+%% @doc Determines whether the request should be processed further based on 
+%%      whether the requested resource exists or not.
+%% @end
+%%------------------------------------------------------------------------------
+maybe_fetch_content(FPath, RD, Ctx) ->
+    case filelib:is_regular(FPath) of
+	true ->
+	    fetch_content(RD, Ctx#state{fpath=FPath});
+	false ->
+	    {{halt, 404}, RD, Ctx}
+    end.
+
+%%------------------------------------------------------------------------------
+%% @private
+%% @spec determine_fpath(RD::wrq:reqdata(), Ctx::state()) -> undefined |
+%%                                                           string()
 %% @doc Returns either a sanitized path for to a resource or undefined.
 %% @end
 %%------------------------------------------------------------------------------
@@ -72,8 +88,8 @@ determine_fpath(RD, Ctx) ->
 
 %%------------------------------------------------------------------------------
 %% @private
-%% @spec fetch_content(RD::#wm_reqdata{}, Ctx::#state{}) -> 
-%%                                           {binary(), #wm_reqdata{}, #state{}}
+%% @spec fetch_content(RD::wrq:reqdata(), Ctx::state()) -> 
+%%                                     {binary(), wrq:reqdata(), state()}
 %% @doc Returns the resource contents.
 %% @end
 %%------------------------------------------------------------------------------

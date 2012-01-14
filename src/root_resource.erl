@@ -1,5 +1,5 @@
 %% @author Moritz Windelen <moritz@tibidat.com>
-%% @copyright 2011 Moritz Windelen.
+%% @copyright 2011-2012 Moritz Windelen.
 %% @doc The erli root resource.
 
 -module(root_resource).
@@ -68,16 +68,10 @@ from_json(RD, Ctx) ->
     end.
 
 from_urlencoded(RD, Ctx) ->
-    case wrq:get_qs_value("tou_checked", RD) of
-	true ->
-	    case wrq:get_qs_value("url", RD) of
-		undefined ->
-		    {{halt, 400}, RD, Ctx}; % the duplication of the 400 here 
-		                            % is 'ungood'
-		TargetUrl ->
-		    maybe_store(RD, #target{target=TargetUrl})
-	    end;
-	undefined ->
+    case is_proper_submission(RD) of
+	{true, TargetUrl} ->
+	    maybe_store(RD, #target{target=TargetUrl});
+	{false, undefined} ->
 	    {{halt, 400}, RD, Ctx}
     end.
 
@@ -86,7 +80,47 @@ from_urlencoded(RD, Ctx) ->
 %%%=============================================================================
 %%------------------------------------------------------------------------------
 %% @private
-%% @spec maybe_store(RD::wm_reqdata{}, Ctx::#state{}) -> true | false
+%% @spec is_proper_submission(RD::wrq:reqdata()) -> {true, string()} |
+%%                                                  {false, undefined}
+%% @doc Returns whether the POST submission is as required.
+%% @end
+%%------------------------------------------------------------------------------
+is_proper_submission(RD) ->
+    {Bool, Target} = check_url_provided(RD),
+    {is_tou_checked(RD) andalso Bool, Target}.
+
+%%------------------------------------------------------------------------------
+%% @private
+%% @spec is_tou_checked(RD::wrq:reqdata()) -> true | false
+%% @doc Returns whether the client agreed to the ToU.
+%% @end
+%%------------------------------------------------------------------------------
+is_tou_checked(RD) ->
+    case wrq:get_qs_value("tou_checked", RD) of
+	"true" ->
+	    true;
+	undefined ->
+	    false
+    end.
+
+%%------------------------------------------------------------------------------
+%% @private
+%% @spec check_url_provided(RD::wrq:reqdata()) -> {false, undefined} |
+%%                                                {true, string()}
+%% @doc Returns whether a URL has been provided.
+%% @end
+%%------------------------------------------------------------------------------
+check_url_provided(RD) ->
+    case wrq:get_qs_value("url", RD) of
+	undefined ->
+	    {false, undefined};
+	Value ->
+	    {true, Value}
+    end.
+
+%%------------------------------------------------------------------------------
+%% @private
+%% @spec maybe_store(RD::wrq:reqdata(), Ctx::target()) -> true | false
 %% @doc Returns whether the creation of a new path was successful.
 %% @end
 %%------------------------------------------------------------------------------
@@ -97,14 +131,22 @@ maybe_store(RD, Ctx) ->
 	    % (e.g. needs a schema definition)
 	    {{halt, 400}, RD, Ctx};
 	true ->
-	    case erli_storage:put(Ctx#target.target) of
-		{error, path_generation_failed} ->
-		    {error, RD, Ctx}; % storage errors return a 500
-		{error, target_banned} ->
-		    {{halt, 410}, RD, Ctx}; % banned target urls return a 410
-		{ok, Path} ->
-		    NRD = wrq:set_resp_header("Location", Path#path.path, RD),
-		    {true, NRD, Ctx}
-	    end
+	    attempt_store(RD, Ctx)
     end.
 
+%%------------------------------------------------------------------------------
+%% @private
+%% @spec attempt_store(RD::wrq:reqdata(), Ctx::target()) -> true | error
+%% @doc Attempts to create a new path for the target URL and store it in mnesia.
+%% @end
+%%------------------------------------------------------------------------------
+attempt_store(RD, Ctx) ->
+    case erli_storage:put(Ctx#target.target) of
+	{error, path_generation_failed} ->
+	    {error, RD, Ctx}; % storage errors return a 500
+	{error, target_banned} ->
+	    {{halt, 410}, RD, Ctx}; % banned target urls return a 410
+	{ok, Path} ->
+	    NRD = wrq:set_resp_header("Location", Path#path.path, RD),
+	    {true, NRD, Ctx}
+    end.

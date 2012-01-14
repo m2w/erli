@@ -1,5 +1,5 @@
 %% @author Moritz Windelen <moritz@tibidat.com>
-%% @copyright Moritz Windelen 2011.
+%% @copyright 2011-2012 Moritz Windelen.
 
 %% @doc Callbacks for the erli application.
 

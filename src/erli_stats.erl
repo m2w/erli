@@ -1,5 +1,5 @@
 %% @author Moritz Windelen <moritz@tibidat.com>
-%% @copyright 2011 Moritz Windelen.
+%% @copyright 2011-2012 Moritz Windelen.
 
 %% @doc gen_server that handles periodic parsing of 
 %%      webmachine logfiles to extract usage statistics
@@ -50,7 +50,7 @@ handle_info(parse_eval, State) ->
 					   ?SCRIPT_NAME]),
     Port = open_port({spawn, PyCmd}, [{packet, 1}, binary, use_stdio]),
     case retrieve_path_stats(Port, erli_storage:path_list()) of
-	true ->
+	{parsing_complete, true} ->
 	    erlang:send_after(?STAT_COLLECT_INTERVAL, self(), parse_eval);
 	{reschedule, Time} ->
 	    erlang:send_after(Time, self(), parse_eval)
@@ -71,8 +71,8 @@ code_change(_OldVsn, State, _Extra) ->
 %%%=============================================================================
 %%------------------------------------------------------------------------------
 %% @private
-%% @spec retrieve_path_stats(Port::port(), ::list()) -> 
-%%                                               true |
+%% @spec retrieve_path_stats(Port::port(), list()) -> 
+%%                                               {parsing_complete, true} |
 %%                                               {reschedule, Time::integer()} |
 %%                                               {error, timeout}
 %% @doc Communicates with the port to recursively collect the statistics for all
@@ -105,4 +105,5 @@ retrieve_path_stats(Port, [Path | RemPaths]) ->
             {error, timeout}
     end;
 retrieve_path_stats(Port, []) ->
-    port_close(Port).
+    true = port_close(Port),
+    {parsing_complete, true}.

@@ -1,5 +1,5 @@
 %% @author Moritz Windelen <moritz@tibidat.com>
-%% @copyright 2011 Moritz Windelen.
+%% @copyright 2011-2012 Moritz Windelen.
 %% @doc erli utility methods.
 
 -module(erli_util).
@@ -11,7 +11,7 @@
 %% @spec is_valid_url(Url::binary()) -> true | false
 %% @doc Returns whether the URL complies with a validation regex that ensures
 %%      only valid URL/URIs are accepted. Currently only ASCII URLs count as
-%%      being `valid`.
+%%      being `valid'.
 %% @end
 %%------------------------------------------------------------------------------
 is_valid_url(Url) ->

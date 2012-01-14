@@ -42,7 +42,7 @@ start_link(Interval) ->
     end.
 
 %%------------------------------------------------------------------------------
-%% @spec check() -> {true, ::integer()} | false
+%% @spec check() -> {true, integer()} | false
 %% @doc Returns whether a request should be throttled, and if so, when it the
 %%      server should be ready to accept new requests in seconds.
 %% @end
@@ -54,29 +54,14 @@ check() ->
 %%% gen_server callbacks
 %%%=============================================================================
 init([Interval]) when is_list(Interval) ->
-    {_Date, {H, M, S} = Time} = calendar:universal_time(),
-    % calculate the initial offset to make the interval 'nice'
-    case Interval of % for now these are hard-coded
-	"hour" ->
-	    S2Go = 60 - S,
-	    M2Go = 60 - M,
-	    T = M2Go * 60 + S2Go,
-	    erlang:send_after(T * 1000, self(), reset), % trigger the reset cycle
-	    {ok, #state{span=3600, 
-			last_reset=calendar:time_to_seconds(Time) - S - M * 60}};
-	"day" ->
-	    T = 86400 - calendar:time_to_seconds({H, M, S}),
-	    erlang:send_after(T * 1000, self(), reset),
-	    {ok, #state{span=86400, 
-			last_reset=86400 - calendar:time_to_seconds(Time)}}
-    end;
+    create_initial_state(Interval);
 init([Interval]) ->
     % you're on your own here...
     {ok, #state{span=Interval}, 0}.
 
 handle_call(should_throttle, _From, #state{reqs_handled=RH, 
-					span=Span, 
-					last_reset=LR}=State) ->
+					   span=Span, 
+					   last_reset=LR}=State) ->
     C = RH + 1,
     NewState = State#state{reqs_handled=C},
     if
@@ -108,7 +93,28 @@ terminate(_Reason, _State) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
-
-
-
-
+%%%=============================================================================
+%%% Internal functions
+%%%=============================================================================
+%%------------------------------------------------------------------------------
+%% @private
+%% @spec create_initial_state(Interval::string()) -> {ok, state()}
+%% @doc Creates an initial state for the gen_server, by calculating the initial
+%%      offset of the reset cycle based on the Interval.
+%% @end
+%%------------------------------------------------------------------------------
+create_initial_state(Interval) ->
+    {_Date, Time} = calendar:universal_time(),
+    initial_offset(Interval, Time).
+initial_offset(Interval, {_H, M, S}=Time) when Interval =:= "hour"->
+    S2Go = 60 - S,
+    M2Go = 60 - M,
+    T = M2Go * 60 + S2Go,
+    erlang:send_after(T * 1000, self(), reset), % trigger the reset cycle
+    {ok, #state{span=3600, 
+		last_reset=calendar:time_to_seconds(Time)-S-M*60}};
+initial_offset(Interval, {H, M, S}=Time) when Interval =:= "day" ->
+    T = 86400 - calendar:time_to_seconds({H, M, S}),
+    erlang:send_after(T * 1000, self(), reset), % trigger the reset cycle
+    {ok, #state{span=86400, 
+		last_reset=86400-calendar:time_to_seconds(Time)}}.

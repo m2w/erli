@@ -1,8 +1,9 @@
 %% @author Moritz Windelen <moritz@tibidat.com>
-%% @copyright 2011 Moritz Windelen.
+%% @copyright 2011-2012 Moritz Windelen.
 %% @doc The API to the database backed storage of URLs
 
 -module(erli_storage).
+-author('Moritz Windelen <moritz@tibidat.com>').
 
 %% API
 -export([init/1,
@@ -35,7 +36,7 @@ init(_Config) ->
     end.
 
 %%------------------------------------------------------------------------------
-%% @spec put(TargetUrl::binary()) -> {ok, :: #target{}} | 
+%% @spec put(TargetUrl::binary()) -> {ok, target()} | 
 %%                                   {error, target_banned} |
 %%                                   {error, path_generation_failed}
 %% @doc Creates a new entry for the target URL or returns the current shortened 
@@ -55,7 +56,7 @@ put(TargetUrl) ->
 %%------------------------------------------------------------------------------
 %% @spec put(TargetUrl::binary(), PathS::string()) -> {error, conflict} |
 %%                                                    {error, target_banned} |
-%%                                                    {ok, ::#target{}}
+%%                                                    {ok, target()}
 %% @doc Attempts to create a new path for the given target URL using the specified
 %%      path.
 %% @end
@@ -99,7 +100,7 @@ put(TargetUrl, PathS) ->
     end.
     
 %%------------------------------------------------------------------------------
-%% @spec read(PathS::string()) -> {ok, ::#target{}} |
+%% @spec read(PathS::string()) -> {ok, target()} |
 %%                                {error, target_banned} | 
 %%                                {error, not_found}
 %% @doc Retrieves the complete short_url record for a shortened URL.
@@ -123,7 +124,7 @@ read(PathS) ->
     end.
 
 %%------------------------------------------------------------------------------
-%% @spec delete(PathS::string()) -> {ok, ::#target{}} | 
+%% @spec delete(PathS::string()) -> {ok, target()} | 
 %%                                  {error, not_found}
 %% @doc Flags the URL linked by Path.
 %% @end
@@ -140,7 +141,7 @@ delete(PathS) ->
     end.
 
 %%------------------------------------------------------------------------------
-%% @spec path_list() -> ::list()
+%% @spec path_list() -> list()
 %% @doc Returns a list of all paths.
 %% @end
 %%------------------------------------------------------------------------------
@@ -150,9 +151,9 @@ path_list() ->
     lists:flatten(PathRecs).
 
 %%------------------------------------------------------------------------------
-%% @spec update_path_stats(Path::#path{}, Countries::list(), UniqueIPs::list(),
+%% @spec update_path_stats(Path::path(), Countries::list(), UniqueIPs::list(),
 %%                         ClickCount::integer(), {_Date, {H::integer(), _M, _S}})
-%%       -> ok | exit({aborted, Reason})
+%%       -> ok
 %% @doc Update a shortened URL's visit statistics.
 %% @end
 %%------------------------------------------------------------------------------
@@ -192,9 +193,9 @@ update_path_stats(Path, Countries, UniqueIPs, ClickCount, {_Date, {H, _M, _S}}) 
 %%%=============================================================================
 %%------------------------------------------------------------------------------
 %% @private
-%% @spec classify_timeslot(Hour::integer(), Clicks::integer(), TS::#timeslots{})
-%%       -> ::#timeslots{}
-%% @doc Classifies `Clicks` in `Hour` according to its time-slot and increments
+%% @spec classify_timeslot(Hour::integer(), Clicks::integer(), TS::timeslots())
+%%       -> timeslots()
+%% @doc Classifies `Clicks' in `Hour' according to its time-slot and increments
 %%      the total click counts for the specific time-slot accordingly.
 %%      Timeslots are as follows:
 %%      night (0-6) | morning (6-12) | afternoon (12-18) | evening (18-24)
@@ -216,9 +217,9 @@ classify_timeslot(Hour,
 
 %%------------------------------------------------------------------------------
 %% @private
-%% @spec is_ip_unique_for_path(Path::#path{}, IP::binary()) -> true | false
-%% @doc Returns whether an client with the IP-Address `IP` already visited 
-%%      `Path`.
+%% @spec is_ip_unique_for_path(Path::path(), IP::binary()) -> true | false
+%% @doc Returns whether an client with the IP-Address `IP' already visited 
+%%      `Path'.
 %% @end
 %%------------------------------------------------------------------------------
 is_ip_unique_for_path(Path, IP) ->
@@ -240,9 +241,9 @@ is_ip_unique_for_path(Path, IP) ->
 
 %%------------------------------------------------------------------------------
 %% @private
-%% @spec path_in_target(PathList::list(), SearchPath::#path{}) -> true | 
+%% @spec path_in_target(PathList::list(), SearchPath::path()) -> true | 
 %%                                                                   false
-%% @doc Returns whether the path `SearchPath` is contained in `PathList`.
+%% @doc Returns whether the path `SearchPath' is contained in `PathList'.
 %% @end
 %%------------------------------------------------------------------------------
 path_in_target(PathList, SearchPath) ->
@@ -260,7 +261,7 @@ path_in_target(PathList, SearchPath) ->
 %% @private
 %% @spec make_path(Url::binary(), MatchingTarget::list()) 
 %%       -> {error, target_banned} |
-%%          {ok, ::#path{}} |
+%%          {ok, path()} |
 %%          {error, path_generation_failed}
 %% @doc Given a URL create a new target record or update an existing one by 
 %%      generating a new path record for it.
@@ -304,7 +305,7 @@ make_path(Url, MatchingTarget) ->
 
 %%------------------------------------------------------------------------------
 %% @private
-%% @spec make_unique_path(URL::binary()) -> {ok, ::string()} |
+%% @spec make_unique_path(URL::binary()) -> {ok, string()} |
 %%                                          {error, path_generation_failed}
 %% @doc Generate a unique path using the base64 encoded md5 of the URL 
 %%      concatenated to the current system time.
@@ -333,7 +334,7 @@ make_unique_path(TargetUrl, NrOfHashConflicts) ->
 %%------------------------------------------------------------------------------
 %% @private
 %% spec is_fresh_startup(Node::node()) -> {is_fresh, true} | 
-%%                                        {is_fresh, ::list()}
+%%                                        {is_fresh, list()}
 %% @doc Returns whether tables have already been created on the node.
 %%      Modified from: http://goo.gl/GlpV5
 %% @end

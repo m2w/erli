@@ -3,3 +3,4 @@ ebin/*
 priv/log/*
 priv/mnesia.store/*
 .eunit/*
+doc/*
