@@ -29,3 +29,28 @@ is_valid_url(Url) ->
 	    false
     end.
 
+%%%=============================================================================
+%%% Tests
+%%%=============================================================================
+-ifdef(TEST).
+
+-include_lib("eunit/include/eunit.hrl").
+
+is_valid_url_test_() ->
+    [?_assertNot(is_valid_url(<<"2001:0db8:0000:08d3:0000:8a2e:0070?7344=asdf">>)),
+     ?_assertNot(is_valid_url(<<"google.com">>)),
+     ?_assertNot(is_valid_url(<<"123.1.1.123">>)),
+     ?_assertNot(is_valid_url("google.com")),
+     ?_assert(is_valid_url("http://google.com")),
+     ?_assert(is_valid_url(<<"http://www.google.de/search?client=safari&rls=en&"
+			     "q=erlang&ie=UTF-8&oe=UTF-8&redir_esc=&ei="
+			     "JB4ST4_0OIHTsgbN0uQu&gbv=1&sei=JB4ST8LoPM7FtAbRnMRB">>)),
+     ?_assert(is_valid_url(<<"http://google.com">>)),
+     ?_assert(is_valid_url(<<"mailto://bob@bob.com">>)),
+     ?_assert(is_valid_url(<<"http://192.0.0.1:1234">>)),
+     ?_assert(is_valid_url(<<"smtp://2001:0db8:0000:08d3:0000:8a2e:0070:7344">>)),
+     ?_assert(is_valid_url(<<"https://2001:0db8:0000:08d3:0000:8a2e:0070:7344?asdf=asdf">>)),
+     ?_assert(is_valid_url(<<"http://google.com:1234?test=harro">>)),
+     ?_assert(is_valid_url(<<"ssh://me@google.com">>))].
+
+-endif.

@@ -2,7 +2,7 @@
 %% @copyright 2011-2012 Moritz Windelen.
 
 %% @doc gen_server that handles periodic parsing of 
-%%      webmachine logfiles to extract usage statistics
+%%      webmachine logfiles to extract usage statistics.
 %% @end
 
 -module(erli_stats).
@@ -11,7 +11,8 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/0]).
+-export([start_link/0,
+	 start_link/1]).
 
 %% gen_server callbacks
 -export([init/1, 
@@ -23,19 +24,39 @@
 
 -include("erli.hrl").
 
+-record(state, {script_dir, script_file, interval}).
+
 %%------------------------------------------------------------------------------
 %% @spec start_link() -> {ok, Pid}
-%% @doc Api call to initialize the gen_server.
+%% @doc Api call to initialize the gen_server with default values.
+%%      Uses the scripts/parse_logs.py script to parse the webmachine access
+%%      logs every 3600000 ms (i.e. every hour).
 %% @end
 %%------------------------------------------------------------------------------
 start_link() ->
-    gen_server:start_link(?MODULE, [], []).
+    start_link(["scripts", "parse_logs.py", 3600000]).
+
+%%------------------------------------------------------------------------------
+%% @spec start_link(list()) -> {ok, Pid}
+%% @doc Api call to initialize the gen_server with custom values.
+%%      Notes:
+%%      ScriptDir is the relative path of the script containing dir to 
+%%      code:priv_dir/1
+%%      ScriptFile is the filename of the script to parse the logs
+%%      Interval represents the amount of time between calls to the 
+%%      script, in ms. (Note that the current implementation does <b>NOT</b>
+%%      prevent calling the parser multiple times during an hour, resulting in 
+%%      inflated visitor counts.
+%% @end
+%%------------------------------------------------------------------------------
+start_link([ScriptDir, ScriptFile, Interval]) ->
+    gen_server:start_link(?MODULE, [ScriptDir, ScriptFile, Interval], []).
 
 %%%=============================================================================
 %%% gen_server callbacks
 %%%=============================================================================
-init([]) ->
-    {ok, {}, 0}.
+init([Dir, File, Interval]) ->
+    {ok, #state{script_dir=Dir, script_file=File, interval=Interval}, 0}.
 
 handle_call(_Req, _From, State) ->
     {reply, ok, State}.
@@ -46,12 +67,12 @@ handle_cast(_Req, State) ->
 handle_info(parse_eval, State) ->
     {ok, App} = application:get_application(),
     PyCmd = "python -u " ++ filename:join([code:priv_dir(App), 
-					   "scripts", 
-					   ?SCRIPT_NAME]),
+					   State#state.script_dir, 
+					   State#state.script_file]),
     Port = open_port({spawn, PyCmd}, [{packet, 1}, binary, use_stdio]),
     case retrieve_path_stats(Port, erli_storage:path_list()) of
 	{parsing_complete, true} ->
-	    erlang:send_after(?STAT_COLLECT_INTERVAL, self(), parse_eval);
+	    erlang:send_after(State#state.interval, self(), parse_eval);
 	{reschedule, Time} ->
 	    erlang:send_after(Time, self(), parse_eval)
     end,

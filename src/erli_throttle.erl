@@ -3,6 +3,8 @@
 
 %% @doc gen_server that handle throttling related state
 
+%% @TODO: rewrite as gen_fsm?
+
 -module(erli_throttle).
 -author('Moritz Windelen <moritz@tibidat.com>').
 

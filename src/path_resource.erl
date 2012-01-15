@@ -31,7 +31,9 @@ service_available(RD, Ctx) ->
 	false ->
 	    {true, RD, Ctx};
 	 {true, RetryAfter}->
-	    NRD = wrq:set_resp_header("Retry-After", integer_to_list(RetryAfter), RD),
+	    NRD = wrq:set_resp_header("Retry-After", 
+				      integer_to_list(RetryAfter), 
+				      RD),
 	    {false, NRD, Ctx}
     end.
 

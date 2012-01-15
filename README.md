@@ -23,7 +23,6 @@ To play around with it on localhost, just clone, `make compile`, `./start.sh` an
 usability:
 
 + thumbnails on the landing pages?
-+ ensure that no matter the `STATS_COLLECT_INTERVAL`, statistics don't get corrupted
 
 code quality:
 
