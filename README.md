@@ -50,3 +50,4 @@ code quality:
 	                   checking whether a path is already taken
 					   via ajax (@ W3C please give us an option
 					   to disable the automatic redirect on 30x!)
+
