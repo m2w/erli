@@ -31,8 +31,8 @@ service_available(RD, Ctx) ->
 	false ->
 	    {true, RD, Ctx};
 	 {true, RetryAfter}->
-	    NRD = wrq:set_resp_header("Retry-After", 
-				      integer_to_list(RetryAfter), 
+	    NRD = wrq:set_resp_header("Retry-After",
+				      integer_to_list(RetryAfter),
 				      RD),
 	    {false, NRD, Ctx}
     end.
@@ -133,29 +133,29 @@ process_body(Url, RD, Ctx) ->
 %% @end
 %%------------------------------------------------------------------------------
 handle_path(Type, RD, Ctx) ->
-    NRD = wrq:set_resp_header("Location", 
-			      binary_to_list(Ctx#target.target), 
+    NRD = wrq:set_resp_header("Location",
+			      binary_to_list(Ctx#target.target),
 			      RD),
     case wrq:get_qs_value("landing", RD) of
-	undefined -> 
+	undefined ->
 	    {{halt, 302}, NRD, Ctx};
-	_Value -> 
+	_Value ->
 	    handle_landing_page(Type, NRD, Ctx)
     end.
 
 %%------------------------------------------------------------------------------
 %% @private
-%% @spec handle_landing_page(ContentType::atom(), RD::wrq:reqdata(), 
+%% @spec handle_landing_page(ContentType::atom(), RD::wrq:reqdata(),
 %%                            Ctx::target()) ->
 %%                                           {iolist(), wrq:reqdata(), target()}
-%% @doc Renders a HTML landing page or returns json containing the necessary 
+%% @doc Renders a HTML landing page or returns json containing the necessary
 %%      information for a path and its target URL.
 %% @end
 %%------------------------------------------------------------------------------
 handle_landing_page(ContentType, RD, Ctx) when ContentType =:= html ->
-    {ok, Content} = landing_dtl:render([{target, 
+    {ok, Content} = landing_dtl:render([{target,
 					 Ctx#target.target},
-					{path, 
+					{path,
 					 wrq:path_info(path)}
 				       ]),
     {Content, RD, Ctx};
@@ -174,8 +174,8 @@ handle_landing_page(_ContentType, RD, Ctx) ->
 %%------------------------------------------------------------------------------
 handle_path_subreq(Type, RD, Ctx) ->
     Path = wrq:path_info(path, RD),
-    {[ThePath], _OtherPaths} = 
-	lists:partition(fun(#path{path=P, _=_}=_Path) -> Path =:= P end, 
+    {[ThePath], _OtherPaths} =
+	lists:partition(fun(#path{path=P, _=_}=_Path) -> Path =:= P end,
 			Ctx#target.paths),
     case wrq:disp_path(RD) of
 	"stats" ->
@@ -190,36 +190,36 @@ handle_path_subreq(Type, RD, Ctx) ->
 
 %%------------------------------------------------------------------------------
 %% @private
-%% @spec handle_stats_subreq(ContentType::atom(), Path::string(), 
+%% @spec handle_stats_subreq(ContentType::atom(), Path::string(),
 %%                           RD::wrq:reqdata(), Ctx::target()) ->
 %%                                           {iolist(), wrq:reqdata(), target()}
 %% @doc Renders the HTML or json response for path statistics.
 %% @end
 %%------------------------------------------------------------------------------
 handle_stats_subreq(ContentType, Path, RD, Ctx) when ContentType =:= html ->
-    {ok, Content} = stats_dtl:render([{target, Ctx#target.target}, 
-				      {path, list_to_binary(Path#path.path)}, 
-				      {total_clicks, Path#path.total_clicks}, 
-				      {unique_clicks, Path#path.unique_clicks}, 
+    {ok, Content} = stats_dtl:render([{target, Ctx#target.target},
+				      {path, list_to_binary(Path#path.path)},
+				      {total_clicks, Path#path.total_clicks},
+				      {unique_clicks, Path#path.unique_clicks},
 				      {country_lst, Path#path.country_lst},
-				      {timeslots, 
+				      {timeslots,
 				       mochiweb_util:record_to_proplist(
-					 Path#path.timeslot_visits, 
+					 Path#path.timeslot_visits,
 					 record_info(fields, timeslots)
 					)
 				      }]),
     {Content, RD, Ctx};
 handle_stats_subreq(ContentType, Path, RD, Ctx) when ContentType =:= json ->
-    % TODO: switch from mochijson2 to https://github.com/davisp/eep0018 
-    Content = mochijson2:encode({struct, 
-				 [{target, Ctx#target.target}, 
-				  {path, list_to_binary(Path#path.path)}, 
-				  {total_clicks, Path#path.total_clicks}, 
-				  {unique_clicks, Path#path.unique_clicks}, 
+    % TODO: switch from mochijson2 to https://github.com/davisp/eep0018
+    Content = mochijson2:encode({struct,
+				 [{target, Ctx#target.target},
+				  {path, list_to_binary(Path#path.path)},
+				  {total_clicks, Path#path.total_clicks},
+				  {unique_clicks, Path#path.unique_clicks},
 				  {country_lst, Path#path.country_lst},
-				  {timeslots, 
+				  {timeslots,
 				   mochiweb_util:record_to_proplist(
-				     Path#path.timeslot_visits, 
+				     Path#path.timeslot_visits,
 				     record_info(fields, timeslots)
 				    )}
 				 ]}),
@@ -229,14 +229,14 @@ handle_stats_subreq(_ContentType, _Path, RD, Ctx) ->
 
 %%------------------------------------------------------------------------------
 %% @private
-%% @spec handle_report_subreq(ContentType::atom(), Path::string(), 
+%% @spec handle_report_subreq(ContentType::atom(), Path::string(),
 %%                           RD::wrq:reqdata(), Ctx::target()) ->
 %%                                           {iolist(), wrq:reqdata(), target()}
 %% @doc Renders the HTML or json response for reporting a path.
 %% @end
 %%------------------------------------------------------------------------------
 handle_report_subreq(ContentType, Path, RD, Ctx) when ContentType =:= html ->
-    {ok, Content} = report_dtl:render([{target, Ctx#target.target}, 
+    {ok, Content} = report_dtl:render([{target, Ctx#target.target},
 				       {path, list_to_binary(Path#path.path)}]),
     {Content, RD, Ctx};
 handle_report_subreq(ContentType, _Path, RD, Ctx) when ContentType =:= json ->

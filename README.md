@@ -4,17 +4,17 @@
 
 ## statistics
 
-Every shortened URL keeps track of visitor counts (non-real time total and unique visit counts) and provides estimates for the geographic location of visitors. 
+Every shortened URL keeps track of visitor counts (non-real time total and unique visit counts) and provides estimates for the geographic location of visitors.
 
 ## 'nsfw' functionality
 
-Appending `?landing=true` to a shortened URL, prevents the automatic redirect, instead a landing page, showing the full target URL and an "are you sure you want to proceed" button, is displayed. 
+Appending `?landing=true` to a shortened URL, prevents the automatic redirect, instead a landing page, showing the full target URL and an "are you sure you want to proceed" button, is displayed.
 
 Reporting inappropriate URLs is kept extremely simple, just add `/report` to the URL.  URLs that reach a certain threshold - this mechanism will be expanded in the future (pull requests are most welcome ;)) - are permanetly banned.
 
 ## demo
 
-Live demo will be up as soon as I get around to it. 
+Live demo will be up as soon as I get around to it.
 
 To play around with it on localhost, just clone, `make compile`, `./start.sh` and open [http://localhost:8000](http://localhost:8000).
 
@@ -46,7 +46,7 @@ code quality:
 	-----------------
 	GET /path/stats  -> view stats for the path
 	-----------------
-	GET /path/check -> utility URL to facility 'low' overhead 
-	                   checking whether a path is already taken 
-					   via ajax (@ W3C please give us an option 
+	GET /path/check -> utility URL to facility 'low' overhead
+	                   checking whether a path is already taken
+					   via ajax (@ W3C please give us an option
 					   to disable the automatic redirect on 30x!)

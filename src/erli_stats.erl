@@ -1,7 +1,7 @@
 %% @author Moritz Windelen <moritz@tibidat.com>
 %% @copyright 2011-2012 Moritz Windelen.
 
-%% @doc gen_server that handles periodic parsing of 
+%% @doc gen_server that handles periodic parsing of
 %%      webmachine logfiles to extract usage statistics.
 %% @end
 
@@ -15,11 +15,11 @@
 	 start_link/1]).
 
 %% gen_server callbacks
--export([init/1, 
-	 handle_call/3, 
-	 handle_cast/2, 
-	 handle_info/2, 
-	 terminate/2, 
+-export([init/1,
+	 handle_call/3,
+	 handle_cast/2,
+	 handle_info/2,
+	 terminate/2,
 	 code_change/3]).
 
 -include("erli.hrl").
@@ -40,12 +40,12 @@ start_link() ->
 %% @spec start_link(list()) -> {ok, Pid}
 %% @doc Api call to initialize the gen_server with custom values.
 %%      Notes:
-%%      ScriptDir is the relative path of the script containing dir to 
+%%      ScriptDir is the relative path of the script containing dir to
 %%      code:priv_dir/1
 %%      ScriptFile is the filename of the script to parse the logs
-%%      Interval represents the amount of time between calls to the 
+%%      Interval represents the amount of time between calls to the
 %%      script, in ms. (Note that the current implementation does <b>NOT</b>
-%%      prevent calling the parser multiple times during an hour, resulting in 
+%%      prevent calling the parser multiple times during an hour, resulting in
 %%      inflated visitor counts.
 %% @end
 %%------------------------------------------------------------------------------
@@ -66,8 +66,8 @@ handle_cast(_Req, State) ->
 
 handle_info(parse_eval, State) ->
     {ok, App} = application:get_application(),
-    PyCmd = "python -u " ++ filename:join([code:priv_dir(App), 
-					   State#state.script_dir, 
+    PyCmd = "python -u " ++ filename:join([code:priv_dir(App),
+					   State#state.script_dir,
 					   State#state.script_file]),
     Port = open_port({spawn, PyCmd}, [{packet, 1}, binary, use_stdio]),
     case retrieve_path_stats(Port, erli_storage:path_list()) of
@@ -92,7 +92,7 @@ code_change(_OldVsn, State, _Extra) ->
 %%%=============================================================================
 %%------------------------------------------------------------------------------
 %% @private
-%% @spec retrieve_path_stats(Port::port(), list()) -> 
+%% @spec retrieve_path_stats(Port::port(), list()) ->
 %%                                               {parsing_complete, true} |
 %%                                               {reschedule, Time::integer()} |
 %%                                               {error, timeout}
@@ -108,20 +108,20 @@ retrieve_path_stats(Port, [Path | RemPaths]) ->
 	    case binary_to_term(RespData) of
 		{reschedule, Time} ->
 		    retrieve_path_stats(Port, []), % close the port before
-						   % rescheduling 
+						   % rescheduling
 		    {reschedule, Time};
 		{Countries, UniqueIPs, ClickCount, TimeStamp} ->
-		    erli_storage:update_path_stats(Path, 
-						   Countries, 
-						   UniqueIPs, 
-						   ClickCount, 
+		    erli_storage:update_path_stats(Path,
+						   Countries,
+						   UniqueIPs,
+						   ClickCount,
 						   TimeStamp),
 		    retrieve_path_stats(Port, RemPaths)
 	    end
     after
         5000 ->
 	    error_logger:warning_msg("[ERLI] ~s timed out on retrieve_path_stats/2"
-				     " for path ~s~n", 
+				     " for path ~s~n",
 				     [?MODULE, Path]),
             {error, timeout}
     end;

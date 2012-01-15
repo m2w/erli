@@ -19,35 +19,35 @@
 
 %%------------------------------------------------------------------------------
 %% @spec init(_Config) -> ok
-%% @doc Initializes the mnesia backend, creating the schema and tables if 
+%% @doc Initializes the mnesia backend, creating the schema and tables if
 %%      necessary.
 %% @end
 %%------------------------------------------------------------------------------
 init(_Config) ->
     case is_fresh_startup(node()) of
-        {is_fresh, true} -> 
+        {is_fresh, true} ->
 	    mnesia:stop(),
 	    mnesia:create_schema([node()]),
 	    mnesia:start(),
 	    {atomic, ok} = create_tables(),
 	    ok;
-        {is_fresh, Tables} -> 
-            ok = mnesia:wait_for_tables(Tables, 60000) 
+        {is_fresh, Tables} ->
+            ok = mnesia:wait_for_tables(Tables, 60000)
     end.
 
 %%------------------------------------------------------------------------------
-%% @spec put(TargetUrl::binary()) -> {ok, target()} | 
+%% @spec put(TargetUrl::binary()) -> {ok, target()} |
 %%                                   {error, target_banned} |
 %%                                   {error, path_generation_failed}
-%% @doc Creates a new entry for the target URL or returns the current shortened 
+%% @doc Creates a new entry for the target URL or returns the current shortened
 %%      path for the URL.
 %% @end
 %%------------------------------------------------------------------------------
 put(TargetUrl) ->
     {atomic, MatchingTarget} = mnesia:transaction(
-      fun() -> 
+      fun() ->
 	      Table = mnesia:table(target),
-	      QueryHandle = qlc:q([T || T <- Table, 
+	      QueryHandle = qlc:q([T || T <- Table,
 					T#target.target =:= TargetUrl]),
 	      qlc:eval(QueryHandle)
       end),
@@ -65,11 +65,11 @@ put(TargetUrl, PathS) ->
     Path = #path{path=PathS},
     case read(PathS) of
 	{error, not_found} ->
-	    {atomic, MatchingTarget} = 
+	    {atomic, MatchingTarget} =
 		mnesia:transaction(
-		  fun() -> 
+		  fun() ->
 			  Table = mnesia:table(target),
-			  QueryHandle = qlc:q([T || T <- Table, 
+			  QueryHandle = qlc:q([T || T <- Table,
 						    T#target.target =:= TargetUrl]),
 			  qlc:eval(QueryHandle)
 		  end),
@@ -80,17 +80,17 @@ put(TargetUrl, PathS) ->
 		    NewTarget = T#target{paths=[Path|ExistingPaths]},
 		    {atomic, _Ret} = mnesia:transaction(
 				       fun() ->
-					       mnesia:write(target, 
-							    NewTarget, 
+					       mnesia:write(target,
+							    NewTarget,
 							    write)
 				       end),
 		    {ok, NewTarget};
-		[] -> 
+		[] ->
 		    NewTarget = #target{target=TargetUrl, paths=[Path]},
 		    {atomic, _Ret} = mnesia:transaction(
 				       fun() ->
-					       mnesia:write(target, 
-							    NewTarget, 
+					       mnesia:write(target,
+							    NewTarget,
 							    write)
 				       end),
 		    {ok, NewTarget}
@@ -98,19 +98,19 @@ put(TargetUrl, PathS) ->
 	_ ->
 	    {error, conflict}
     end.
-    
+
 %%------------------------------------------------------------------------------
 %% @spec read(PathS::string()) -> {ok, target()} |
-%%                                {error, target_banned} | 
+%%                                {error, target_banned} |
 %%                                {error, not_found}
 %% @doc Retrieves the complete short_url record for a shortened URL.
 %% @end
 %%------------------------------------------------------------------------------
 read(PathS) ->
     {atomic, Result} = mnesia:transaction(
-      fun() -> 
+      fun() ->
 	      Table = mnesia:table(target),
-	      QueryHandle = qlc:q([T || T <- Table, path_in_target(T#target.paths, 
+	      QueryHandle = qlc:q([T || T <- Table, path_in_target(T#target.paths,
 								     PathS)]),
 	      qlc:eval(QueryHandle)
       end),
@@ -124,7 +124,7 @@ read(PathS) ->
     end.
 
 %%------------------------------------------------------------------------------
-%% @spec delete(PathS::string()) -> {ok, target()} | 
+%% @spec delete(PathS::string()) -> {ok, target()} |
 %%                                  {error, not_found}
 %% @doc Flags the URL linked by Path.
 %% @end
@@ -132,7 +132,7 @@ read(PathS) ->
 delete(PathS) ->
     case read(PathS) of
 	{_, #target{rep_num = RepNum, _=_} = Target} ->
-	    NewTarget = Target#target{reported=true, 
+	    NewTarget = Target#target{reported=true,
 				      rep_num=RepNum+1},
 	    ok = mnesia:dirty_write(target, NewTarget),
 	    {ok, NewTarget};
@@ -146,7 +146,7 @@ delete(PathS) ->
 %% @end
 %%------------------------------------------------------------------------------
 path_list() ->
-    PathRecs = mnesia:dirty_select(target, 
+    PathRecs = mnesia:dirty_select(target,
 				   [{#target{paths='$1', _='_'}, [], ['$1']}]),
     lists:flatten(PathRecs).
 
@@ -161,11 +161,11 @@ update_path_stats(Path, Countries, UniqueIPs, ClickCount, {_Date, {H, _M, _S}}) 
     % grab the target record
     {ok, #target{paths=Paths, _=_} = Target} = read(Path#path.path),
     % filter out the important path (not doing this in the read call leaves it 'cheap'
-    {[#path{country_lst=CL, total_clicks=TC, unique_clicks=UC, timeslot_visits=TSV, _=_}=ThePath], 
-     OtherPaths} = 
-	lists:partition(fun(P) -> 
-				Path =:= P 
-			end, 
+    {[#path{country_lst=CL, total_clicks=TC, unique_clicks=UC, timeslot_visits=TSV, _=_}=ThePath],
+     OtherPaths} =
+	lists:partition(fun(P) ->
+				Path =:= P
+			end,
 			Paths),
 
     % check if there is a new ip for this path
@@ -174,13 +174,13 @@ update_path_stats(Path, Countries, UniqueIPs, ClickCount, {_Date, {H, _M, _S}}) 
     % merge old and new country lists
     CountryUnion = sets:to_list(
 		     sets:union(
-		       sets:from_list(CL), 
+		       sets:from_list(CL),
 		       sets:from_list(Countries)
 		      )
 		    ),
-    
+
     % update the path stats
-    NewPath = ThePath#path{country_lst=CountryUnion, 
+    NewPath = ThePath#path{country_lst=CountryUnion,
 			   unique_clicks=UC + UniqueClicks,
 			   total_clicks=TC + ClickCount,
 			   timeslot_visits=classify_timeslot(H, ClickCount, TSV)},
@@ -201,8 +201,8 @@ update_path_stats(Path, Countries, UniqueIPs, ClickCount, {_Date, {H, _M, _S}}) 
 %%      night (0-6) | morning (6-12) | afternoon (12-18) | evening (18-24)
 %% @end
 %%------------------------------------------------------------------------------
-classify_timeslot(Hour, 
-		  Clicks, 
+classify_timeslot(Hour,
+		  Clicks,
 		  #timeslots{night=N, morning=M, afternoon=A, evening=E}=TS) ->
     case Hour of
 	H when H =< 6 ->
@@ -218,7 +218,7 @@ classify_timeslot(Hour,
 %%------------------------------------------------------------------------------
 %% @private
 %% @spec is_ip_unique_for_path(Path::path(), IP::binary()) -> true | false
-%% @doc Returns whether an client with the IP-Address `IP' already visited 
+%% @doc Returns whether an client with the IP-Address `IP' already visited
 %%      `Path'.
 %% @end
 %%------------------------------------------------------------------------------
@@ -241,14 +241,14 @@ is_ip_unique_for_path(Path, IP) ->
 
 %%------------------------------------------------------------------------------
 %% @private
-%% @spec path_in_target(PathList::list(), SearchPath::path()) -> true | 
+%% @spec path_in_target(PathList::list(), SearchPath::path()) -> true |
 %%                                                                   false
 %% @doc Returns whether the path `SearchPath' is contained in `PathList'.
 %% @end
 %%------------------------------------------------------------------------------
 path_in_target(PathList, SearchPath) ->
     Path = lists:filter(
-	     fun(#path{path=ThePath, _=_}) -> ThePath =:= SearchPath end, 
+	     fun(#path{path=ThePath, _=_}) -> ThePath =:= SearchPath end,
 			PathList),
     case Path of
 	[] ->
@@ -259,11 +259,11 @@ path_in_target(PathList, SearchPath) ->
 
 %%------------------------------------------------------------------------------
 %% @private
-%% @spec make_path(Url::binary(), MatchingTarget::list()) 
+%% @spec make_path(Url::binary(), MatchingTarget::list())
 %%       -> {error, target_banned} |
 %%          {ok, path()} |
 %%          {error, path_generation_failed}
-%% @doc Given a URL create a new target record or update an existing one by 
+%% @doc Given a URL create a new target record or update an existing one by
 %%      generating a new path record for it.
 %% @end
 %%------------------------------------------------------------------------------
@@ -280,13 +280,13 @@ make_path(Url, MatchingTarget) ->
 		    NewTarget = T#target{paths=[Path|ExistingPaths]},
 		    {atomic, _Ret} = mnesia:transaction(
 				       fun() ->
-					       mnesia:write(target, 
-							    NewTarget, 
+					       mnesia:write(target,
+							    NewTarget,
 							    write)
 				       end),
 		    {ok, Path}
 	    end;
-	[] -> 
+	[] ->
 	    case make_unique_path(Url) of
 		{error, path_generation_failed} ->
 		    {error, path_generation_failed};
@@ -295,8 +295,8 @@ make_path(Url, MatchingTarget) ->
 		    T = #target{target=Url, paths=[Path]},
 		    {atomic, _Ret} = mnesia:transaction(
 				       fun() ->
-					       mnesia:write(target, 
-							    T, 
+					       mnesia:write(target,
+							    T,
 							    write)
 				       end),
 		    {ok, Path}
@@ -307,7 +307,7 @@ make_path(Url, MatchingTarget) ->
 %% @private
 %% @spec make_unique_path(URL::binary()) -> {ok, string()} |
 %%                                          {error, path_generation_failed}
-%% @doc Generate a unique path using the base64 encoded md5 of the URL 
+%% @doc Generate a unique path using the base64 encoded md5 of the URL
 %%      concatenated to the current system time.
 %% @end
 %%------------------------------------------------------------------------------
@@ -322,7 +322,7 @@ make_unique_path(TargetUrl, NrOfHashConflicts) ->
 	[] ->
 	    {ok, CleanPath};
 	_Res ->
-	    if 
+	    if
 		NrOfHashConflicts < ?MAX_CONFLICTS ->
 		    make_unique_path(TargetUrl, NrOfHashConflicts + 1);
 		true ->
@@ -333,23 +333,23 @@ make_unique_path(TargetUrl, NrOfHashConflicts) ->
 
 %%------------------------------------------------------------------------------
 %% @private
-%% spec is_fresh_startup(Node::node()) -> {is_fresh, true} | 
+%% spec is_fresh_startup(Node::node()) -> {is_fresh, true} |
 %%                                        {is_fresh, list()}
 %% @doc Returns whether tables have already been created on the node.
 %%      Modified from: http://goo.gl/GlpV5
 %% @end
 %%------------------------------------------------------------------------------
 is_fresh_startup(Node) ->
-    case mnesia:system_info(tables) of 
+    case mnesia:system_info(tables) of
         [schema] ->
 	    {is_fresh, true};
-        Tables -> 
-            case mnesia:table_info(schema, cookie) of 
-                {_, Node} -> 
-		    {is_fresh, Tables}; 
-                _ -> 
+        Tables ->
+            case mnesia:table_info(schema, cookie) of
+                {_, Node} ->
+		    {is_fresh, Tables};
+                _ ->
 		    {is_fresh, true}
-            end 
+            end
     end.
 
 %%------------------------------------------------------------------------------
@@ -359,10 +359,10 @@ is_fresh_startup(Node) ->
 %% @end
 %%------------------------------------------------------------------------------
 create_tables() ->
-    {atomic, ok} = mnesia:create_table(target, [{attributes, 
+    {atomic, ok} = mnesia:create_table(target, [{attributes,
 						 record_info(fields, target)},
 						{disc_copies, [node()]}]),
-    {atomic, ok} = mnesia:create_table(visitor_ip, [{attributes, 
-						     record_info(fields, 
+    {atomic, ok} = mnesia:create_table(visitor_ip, [{attributes,
+						     record_info(fields,
 								 visitor_ip)},
 						    {disc_copies, [node()]}]).

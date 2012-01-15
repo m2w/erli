@@ -26,8 +26,8 @@ allowed_methods(RD, Ctx) ->
     {['GET'], RD, Ctx}.
 
 content_types_provided(RD, Ctx) ->
-    {[{webmachine_util:guess_mime(wrq:disp_path(RD)), maybe_provide_content}], 
-     RD, 
+    {[{webmachine_util:guess_mime(wrq:disp_path(RD)), maybe_provide_content}],
+     RD,
      Ctx#state{fpath=determine_fpath(RD, Ctx)}}.
 
 %%%=============================================================================
@@ -36,7 +36,7 @@ content_types_provided(RD, Ctx) ->
 %%------------------------------------------------------------------------------
 %% @spec maybe_provide_content(RD::wrq:reqdata(), Ctx::state()) ->
 %%                                  {{halt, 403}, wrq:reqdata(), state()} |
-%%                                  {binary(), wrq:reqdata(), state()}  | 
+%%                                  {binary(), wrq:reqdata(), state()}  |
 %%                                  {{halt, 404}, wrq:reqdata(), state()}
 %% @doc Determines whether to provide the requested resource, based on whether
 %%      it exists and is 'safe'.
@@ -57,9 +57,9 @@ maybe_provide_content(RD, #state{fpath=Path, _=_}=Ctx) ->
 %%------------------------------------------------------------------------------
 %% @private
 %% @spec maybe_fetch_content(FPath::string(), RD::wrq:reqdata(), Ctx::state())
-%%       -> {binary(), wrq:reqdata(), state()} | 
+%%       -> {binary(), wrq:reqdata(), state()} |
 %%          {{halt, 404}, wrq:reqdata(), state()}
-%% @doc Determines whether the request should be processed further based on 
+%% @doc Determines whether the request should be processed further based on
 %%      whether the requested resource exists or not.
 %% @end
 %%------------------------------------------------------------------------------
@@ -88,11 +88,11 @@ determine_fpath(RD, Ctx) ->
 
 %%------------------------------------------------------------------------------
 %% @private
-%% @spec fetch_content(RD::wrq:reqdata(), Ctx::state()) -> 
+%% @spec fetch_content(RD::wrq:reqdata(), Ctx::state()) ->
 %%                                     {binary(), wrq:reqdata(), state()}
 %% @doc Returns the resource contents.
 %% @end
 %%------------------------------------------------------------------------------
-fetch_content(RD, Ctx) ->    
+fetch_content(RD, Ctx) ->
     {ok, Content} = file:read_file(Ctx#state.fpath),
     {Content, RD, Ctx}.

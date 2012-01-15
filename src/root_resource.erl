@@ -26,8 +26,8 @@ service_available(RD, Ctx) ->
 	false ->
 	    {true, RD, Ctx};
 	 {true, RetryAfter}->
-	    NRD = wrq:set_resp_header("Retry-After", 
-				      integer_to_list(RetryAfter), 
+	    NRD = wrq:set_resp_header("Retry-After",
+				      integer_to_list(RetryAfter),
 				      RD),
 	    {false, NRD, Ctx}
 	end.
@@ -127,7 +127,7 @@ check_url_provided(RD) ->
 maybe_store(RD, Ctx) ->
     case erli_util:is_valid_url(Ctx#target.target) of
 	false ->
-	    % TODO: add request body which contains some kind of info 
+	    % TODO: add request body which contains some kind of info
 	    % (e.g. needs a schema definition)
 	    {{halt, 400}, RD, Ctx};
 	true ->

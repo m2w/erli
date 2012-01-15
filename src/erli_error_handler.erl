@@ -12,7 +12,7 @@ render_error(Code, Req, Reason) ->
     case Req:has_response_body() of
         {true,_} ->
 	    Req:response_body();
-	{false,_} -> 
+	{false,_} ->
 	    render_error_body(Code, Req:trim_state(), Reason)
     end.
 

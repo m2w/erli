@@ -66,7 +66,7 @@ init([]) ->
     Stats = {erli_stats, {erli_stats, start_link, []},
 	     permanent, 5000, worker, [erli_stats]},
     % currently supported are "hour" | "day"
-    % the throttle interval indicates over which time frame requests are 
+    % the throttle interval indicates over which time frame requests are
     % throttled => e.g N Requests / ThrottleInterval
     ThrottleInterval = "hour",
     Throttle = {erli_throttle, {erli_throttle, start_link, [ThrottleInterval]},

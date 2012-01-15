@@ -21,7 +21,7 @@ is_valid_url(Url) ->
 			  "(?:(?:[0-9]+\.){3}(?:[0-9]+))|" % IPs
 			  "(?:(?:[a-f0-9]+\:)+(?:[a-f0-9]+)))(?:(?:\s*$)|" % IPv6
 			  "(?:(?:[:\/?]).+$))", % any query/path suffixes
-			  [dotall]), 
+			  [dotall]),
     case re:run(Url, Re, [{capture, none}]) of
 	match ->
 	    true;

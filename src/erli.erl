@@ -26,7 +26,7 @@ start_link() ->
     ensure_started(mochiweb),
     ensure_started(mnesia),
     erli_storage:init({}), % initialize mnesia
-    application:set_env(webmachine, webmachine_logger_module, 
+    application:set_env(webmachine, webmachine_logger_module,
                         webmachine_logger),
     ensure_started(webmachine),
     erli_sup:start_link().
@@ -42,7 +42,7 @@ start() ->
     ensure_started(mochiweb),
     ensure_started(mnesia),
     erli_storage:init({}), % initialize mnesia
-    application:set_env(webmachine, webmachine_logger_module, 
+    application:set_env(webmachine, webmachine_logger_module,
                         webmachine_logger),
     ensure_started(webmachine),
     application:start(erli).

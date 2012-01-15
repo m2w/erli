@@ -35,9 +35,9 @@ start_link(Interval) ->
     case whereis(erli_throttle) of
 	undefined ->
 	    {ok, Pid} = gen_server:start_link(?MODULE, [Interval], []),
-	    %register the name locally since we can't pass dynamic 
+	    %register the name locally since we can't pass dynamic
 	    %information to our webmachine resource (limited to dispatcher args)
-	    register(erli_throttle, Pid), 
+	    register(erli_throttle, Pid),
 	    {ok, Pid};
 	Pid ->
 	    {ok, Pid}
@@ -61,8 +61,8 @@ init([Interval]) ->
     % you're on your own here...
     {ok, #state{span=Interval}, 0}.
 
-handle_call(should_throttle, _From, #state{reqs_handled=RH, 
-					   span=Span, 
+handle_call(should_throttle, _From, #state{reqs_handled=RH,
+					   span=Span,
 					   last_reset=LR}=State) ->
     C = RH + 1,
     NewState = State#state{reqs_handled=C},
@@ -80,7 +80,7 @@ handle_cast(_Req, State) ->
 
 % reset the req count after a set timespan
 handle_info(reset, State) ->
-    error_logger:info_msg("[ERLI] handled a total of ~p requests", 
+    error_logger:info_msg("[ERLI] handled a total of ~p requests",
 			  [State#state.reqs_handled]),
     {_, T} = calendar:universal_time(),
     Time = calendar:time_to_seconds(T),
@@ -113,10 +113,10 @@ initial_offset(Interval, {_H, M, S}=Time) when Interval =:= "hour"->
     M2Go = 60 - M,
     T = M2Go * 60 + S2Go,
     erlang:send_after(T * 1000, self(), reset), % trigger the reset cycle
-    {ok, #state{span=3600, 
+    {ok, #state{span=3600,
 		last_reset=calendar:time_to_seconds(Time)-S-M*60}};
 initial_offset(Interval, {H, M, S}=Time) when Interval =:= "day" ->
     T = 86400 - calendar:time_to_seconds({H, M, S}),
     erlang:send_after(T * 1000, self(), reset), % trigger the reset cycle
-    {ok, #state{span=86400, 
+    {ok, #state{span=86400,
 		last_reset=86400-calendar:time_to_seconds(Time)}}.
