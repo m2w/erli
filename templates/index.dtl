@@ -1,81 +1,117 @@
 {% extends "base.dtl" %}
 
-{% block title %}a URL shortener{% endblock %}
+{% block title %}an Erlang URL shortener{% endblock %}
 
-{% block extra_js %} 
-  <script type="text/javascript" src="http://twitter.github.com/bootstrap/1.4.0/bootstrap-modal.js"></script>
-  <script type="text/javascript" src="http://twitter.github.com/bootstrap/1.4.0/bootstrap-alerts.js"></script>
-  <script type="text/javascript" src="/static/erli.js"></script>
+{% block extra_js %}
+  <script type="text/javascript" src="/static/js/erli.js"></script>
 {% endblock %}
 
 {% block heading %}an Erlang URL shortener{% endblock %}
 
 {% block body %}
-  <!-- Success banner after successful creation of a shortened URL -->
-  <div class="alert-message block-message success fade in" data-alert="alert" style="display:none;" id="success_banner">
+  <!-- Banner to announce successful creation of a shortened URL -->
+  <div  id="banner_url_shortened" class="alert alert-block alert-success" style="display:none;">
     <a class="close" href="#">X</a>
-    <p><strong>erli</strong> shortened your URL: <a href="" id="path"></a></p>
-    <p>You can view some statistics regarding usage of your shortened URL here: <a href="" id="path_stats"></a></p>
+    <p><strong>erli</strong> shortened your URL: <a href="" id="shortened_url"></a></p>
+    <p>Usage statistics for the shortened URL are available here: <a href="" id="url_to_stats"></a></p>
   </div>
 
-  <!-- Warning banner for visitors with js disabled -->
-  <div class="alert-message warning">
-    <p><strong>Javascript disabled!</strong> It seems that you have javascript disabled, without it most of <strong>erli</strong> won't work. Please enable it.</p>
-  </div>
-
-  <!-- Error banner for shortening banned URLs -->
-  <div class="alert-message error" style="display:none;">
-    <p><strong>URL banned</strong> The URL (<span id="banned_url">url</span>) you are trying to shorten has been reported numerous times and has been banned</p>
+  <!-- Banner for attempting to shortened a banned URL -->
+  <div id="banner_target_url_banned" class="alert alert-block alert-error" style="display:none;">
     <a class="close" href="#">X</a>
+    <p><strong>URL banned</strong></p>
+    <p> The URL (<span id="banned_url">url</span>) you are trying to shorten has been banned due to repeated user reports</p>
   </div>
 
-  <form id="shorten_url_form">
+  <!-- Banner to announce internal server errors during AJAX -->
+  <div  id="banner_internal_error" class="alert alert-block alert-error" style="display:none;">
+    <a class="close" href="#">X</a>
+    <p><strong>erli</strong> encountered an internal error</p>
+    <p>Please help out by submitting an issue on <a href="">github</a></p>
+  </div>
+
+  <!-- Banner for non-js visitors -->
+  <div id="banner_js_disabled" class="alert alert-block alert-warning">
+    <p><strong>No javascript support</strong></p>
+    <p>It seems that you have javascript disabled, without it most of <strong>erli</strong> won't work.</p>
+  </div>
+
+  <form id="form_shorten_url">
     <fieldset>
-      <div class="clearfix input">
-	  <input class="xlarge" id="url_input" name="url" size="30" type="text" placeholder="enter a URL to shorten" />
-	  <span class="help-inline" style="display:none;">Please enter a <span rel="popover" id="url_structure_popup" data-content="To be correct erli is an URI shortener, hence you must specify a schema for the link, otherwise bad things can happen during the 302 redirect. Additionally, erli currently only supports ASCI URIs." data-original-title="What is a correct URL?">correct URL</span> to shorten</span>
+      <!-- target URL -->
+      <div class="control-group">
+        <input name="url" id="input_target_url" class="input-xlarge" type="text" placeholder="URL to shorten" />
+        <span class="help-inline" style="display:none;">Please enter a <span id="popover_schema_required" rel="popover" data-content="erli is actually a URI shortener. So it lets you create shortened URLs for just about anything (e.g. network drives). However, it means you have to specify a schema, such as 'http://'. Additionally, erli currently only supports ASCII URIs." data-original-title="What is a correct URI?">correct URI</span></span>
       </div>
-      <div class="clearfix input">
-	<label for="pref_path_input"><em>Optional:</em> enter the shortened URL of your choice <span rel="popover" id="path_help_popup" data-content="In this case path just refers to the erli suffix your URL is shortened to. Feel free to chose your own! For example, to shorten a URL to just er.li/1 enter 1 here. You will (immediately) see if the path you choose is available." data-original-title="What is a path?">(huh?)</span></label><br />
-	<input class="xlarge" id="pref_path_input" type="text" name="path" placeholder="enter a shortened path" size="30" />
-	<span class="help-inline" style="display:none">This path is already taken</span>
+
+      <!-- ToU checkbox -->
+        <label class="control-group">
+          <input name="tou_check" id="input_tou_check" type="checkbox" value="comply" /><span class="help-inline" style="padding-bottom:0;">my URL complies with the <strong>erli</strong> <a href="#modal_tou" data-toggle="modal">Terms of Use</a></span>
+        </label>
+
+      <!-- custom shortened URL -->
+      <div class="input-group">
+        <!-- explanatory text -->
+        <div id="banner_custom_short_url_info">
+          <small>
+            <strong>Optional</strong>
+            <p>
+              Normally <strong>erli</strong> automatically generates a random shortened URL for you. But feel free to pick your own!<br>
+              Your shortened URL has to be <em>shorter than 10 characters long</em>
+            </p>
+          </small>
+          <div class="input-prepend input-append controls control-group">
+            <span class="add-on">erl.li/</span>
+            <input name="path" id="input_pref_shortened_url" class="input-large" type="text"  placeholder="custom shortened URL" maxlength="9" />
+            <button id="btn_check_availability" class="btn" type="button">check availability</button>
+            <!-- error messages -->
+            <br>
+            <small><span class="help-inline" style="display:none;font-size:15px;padding-top:0.5em;padding-bottom:0px;"></span></small> <!-- ugly -->
+          </div>
+        </div>
       </div>
-      <div class="clearfix input">
-	<label>
-	  <input type="checkbox" id="tou_checkbox" name="tou_check" value="comply" />
-	  <span>My URL complies with the <a href="#" data-controls-modal="modal-tou" data-backdrop="false" data-keyboard="true">Terms of Use</a></span>
-	</label>
-      </div>
-      <div class="clearfix">
-	<button id="url_submit" type="submit" class="btn">Shorten!</button>
+
+      <div class="input-group">
+        <button id="btn_shorten_url" class="btn" type="submit">Shorten!</button>
       </div>
     </fieldset>
   </form>
 
-  <p><strong>erli</strong> shortens your URLs and provides easily accessible statistics regarding usage of your shortened URL.</p>
-  <p>Not sure if you should be visiting the shortened URL? Just append <code>?landing=true</code> and <strong>erli</strong> will display a landing page with information regarding the target URL with the option to either visit the target or be redirected to Google.</p>
+  <p><strong>erli</strong> shortens your URLs and provides simple, easily accessible statistics regarding usage of shortened URLs.</p>
+  <p>Not sure if you should be visiting a shortened URL? Just append <code>?landing=true</code> and <strong>erli</strong> will display a landing page with information where it will take you, giving you the option to proceed or not.</p>
 {% endblock %}
 
 {% block modal_content %}
-  <div id="modal-tou" class="modal" style="display:none;">
+  <div id="modal_tou" class="modal hide fade">
     <div class="modal-header">
-      <a href="#" class="close">X</a>
+      <a href="#" class="close" data-dismiss="modal">X</a>
       <h3><strong>erli</strong> :: Terms of Use</h3>
     </div>
     <div class="modal-body">
-      <p>The terms of use are simple.</p>
-      <p>Don't use shortify to shorten URLs that link to the following:</p>
-      <ul class="unstyled">
-	<li>Illegal content: e.g. child pornography</li>
-	<li>Harmful content: e.g. phishing websites</li>
-      </ul>
-      <p>If you are unsure whether your link infringes on one of the above, just don't submit it ;)</p>
-      <p>If you stumble upon a link which does infringe the conditions above, you can report it by simply appending <code>/report</code> to the infringing shortened URL.</p>
-      <p><strong>Example:</strong> assume that the shortened URL <code>http://er.li/asdf1</code> links to a page that doesn't seem to comply with the above terms. You can report the infringement by navigating to <code>http://er.li/asdf1/report</code>. Shortened URLs that get reported multiple times are removed.</p>
+      <p>
+        <em>TLDR</em> use common sense when deciding whether to shorten a URL.<br>
+        The <strong>erli</strong> terms of use are straightforward.
+      </p>
+      <div id="tou">
+        <p>You agree <strong>not to use</strong> <strong>erli</strong> to shorten URLs that link to any of the following:</p>
+        <ul class="unstyled">
+        	<li><i class="icon-chevron-right"></i>Illegal content</li>
+        	<li><i class="icon-chevron-right"></i>Harmful content</li>
+        </ul>
+        <small>
+          The terms illegal and harmful are left intentionally vague.<br>
+          If you are unsure whether your link infringes on one of the above, <br>
+          you probably shouldn't be shortening it<br>
+        </small>
+      </div>
+      <small>
+        <p>If you stumble upon a link which does infringe the conditions above, you can report it by simply appending <code>/report</code> to the infringing shortened URL.</p>
+        <p class="muted"><strong>Example:</strong> assume that the shortened URL <code>http://er.li/asdf1</code> links to a page that doesn't seem to comply with the above terms. You can report the infringement by navigating to <code>http://er.li/asdf1/report</code>. Shortened URLs that get reported multiple times are removed.</p>
+      </small>
     </div>
     <div class="modal-footer">
-      <a href="#" class="btn primary">I agree</a>
-      <a href="#" class="btn secondary">Okay</a>
+      <a href="#" class="btn btn-success">I agree</a>
+      <a href="#" class="btn btn-inverse">Okay</a>
     </div>
   </div>
 {% endblock %}

@@ -1,75 +1,65 @@
 %% @author Moritz Windelen <moritz@tibidat.com>
-%% @copyright 2011-2012 Moritz Windelen
-
-%% @doc Supervisor for the erli application.
+%% @copyright 2012-2013 Moritz Windelen.
+%% @doc The root supervisor of the erli application.
 
 -module(erli_sup).
 -author('Moritz Windelen <moritz@tibidat.com>').
 
 -behaviour(supervisor).
 
-%% External exports
--export([start_link/0, upgrade/0]).
+%% API
+-export([start_link/0]).
 
-%% supervisor callbacks
+%% Supervisor callbacks
 -export([init/1]).
 
-%%------------------------------------------------------------------------------
-%% @spec start_link() -> ServerRet
-%% @doc API for starting the supervisor.
-%% @end
-%%------------------------------------------------------------------------------
+-define(SERVER, ?MODULE).
+
+%%%===================================================================
+%%% API functions
+%%%===================================================================
+
+%% @doc Starts the erli supervisor
+-spec start_link() -> application:startlink_ret().
 start_link() ->
-    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
+    supervisor:start_link({local, ?SERVER}, ?MODULE, []).
 
-%%------------------------------------------------------------------------------
-%% @spec upgrade() -> ok
-%% @doc Add processes if necessary.
-%% @end
-%%------------------------------------------------------------------------------
-upgrade() ->
-    {ok, {_, Specs}} = init([]),
+%%%===================================================================
+%%% Supervisor callbacks
+%%%===================================================================
 
-    Old = sets:from_list(
-            [Name || {Name, _, _, _} <- supervisor:which_children(?MODULE)]),
-    New = sets:from_list([Name || {Name, _, _, _, _, _} <- Specs]),
-    Kill = sets:subtract(Old, New),
+%% @private
+%% @doc Initializes the supervisor tree for erli.
+-spec init(Args :: term()) ->
+		  {ok, {{RestartStrategy :: atom(), MaxR :: integer(),
+			 MaxT :: integer()}, [ChildSpec :: supervisor:child_spec()]}} | ignore.
+init(_Args) ->
+    Pools = erli_utils:get_env(pools),
+    PoolSpecs = [gen_pool_spec(P) || P <- Pools],
+    IP = case os:getenv("WEBMACHINE_IP") of
+	     false -> "0.0.0.0";
+	     Any -> Any
+	 end,
+    {ok, App} = application:get_application(),
+    {ok, Dispatcher} =
+	file:consult(filename:join(code:priv_dir(App),
+				   "dispatch.conf")),
+    WebmachineConfig = [{ip, IP}, {port, 8000},
+			{dispatch, Dispatcher},
+			{error_handler, erli_error_handler}],
+    Webmachine = {webmachine_mochiweb,
+		  {webmachine_mochiweb, start, [WebmachineConfig]},
+		  permanent, 5000, worker, [mochiweb_socket_server]},
+    {ok, {{one_for_one, 10, 10}, [Webmachine | PoolSpecs]}}.
 
-    sets:fold(fun (Id, ok) ->
-                      supervisor:terminate_child(?MODULE, Id),
-                      supervisor:delete_child(?MODULE, Id),
-                      ok
-              end, ok, Kill),
-
-    [supervisor:start_child(?MODULE, Spec) || Spec <- Specs],
-    ok.
-
-%%------------------------------------------------------------------------------
-%% @spec init([]) -> SupervisorTree
-%% @doc supervisor callback.
-%% @end
-%%------------------------------------------------------------------------------
-init([]) ->
-    Ip = case os:getenv("WEBMACHINE_IP") of false -> "0.0.0.0"; Any -> Any end,
-    {ok, Dispatch} = file:consult(filename:join(
-                         [filename:dirname(code:which(?MODULE)),
-                          "..", "priv", "dispatch.conf"])),
-    WebConfig = [
-                 {ip, Ip},
-                 {port, 8000},
-                 {log_dir, "priv/log"},
-                 {dispatch, Dispatch},
-		 {error_handler, erli_error_handler}],
-    Web = {webmachine_mochiweb,
-           {webmachine_mochiweb, start, [WebConfig]},
-           permanent, 5000, worker, [mochiweb_socket_server]},
-    Stats = {erli_stats, {erli_stats, start_link, []},
-	     permanent, 5000, worker, [erli_stats]},
-    % currently supported are "hour" | "day"
-    % the throttle interval indicates over which time frame requests are
-    % throttled => e.g N Requests / ThrottleInterval
-    ThrottleInterval = "hour",
-    Throttle = {erli_throttle, {erli_throttle, start_link, [ThrottleInterval]},
-		permanent, 5000, worker, [erli_throttle]},
-    Processes = [Web, Stats, Throttle],
-    {ok, { {one_for_one, 10, 10}, Processes} }.
+%% @private
+%% @doc Generates poolboy child specs from a pool spec
+-spec gen_pool_spec({Name :: atom(),
+		     [SizeArgs :: tuple()],
+		     [WorkerArgs :: tuple()]}) ->
+			   supervisor:child_spec().
+gen_pool_spec({Name, SizeArgs, WorkerArgs}) ->
+    PoolArgs = [{name, {local, Name}},
+		{worker_module, erli_stats_worker}]
+	++ SizeArgs,
+    poolboy:child_spec(Name, PoolArgs, WorkerArgs).

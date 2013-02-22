@@ -3,7 +3,7 @@
 {% block title %}statistics{% endblock %}
 
 {% block extra_js %}
-  <script type="text/javascript" src="/static/worldmap.js"></script>
+  <script type="text/javascript" src="/static/js/worldmap.js"></script>
   <script type="text/javascript" src="https://www.google.com/jsapi"></script>
   <script type="text/javascript">
     google.load("visualization", "1", {packages:["corechart"]});
@@ -13,16 +13,16 @@
         data.addColumn('string', 'Time of day');
         data.addColumn('number', 'Number of clicks');
         data.addRows([
-            ['night (0:00-6:00)', {{ timeslots.night }}],
-            ['morning (6:00-12:00)', {{ timeslots.morning }}],
-            ['afternoon (12:00-18:00)', {{ timeslots.afternoon }}],
-            ['evening (18:00-24:00)', {{ timeslots.evening }}],
+            ['night (0:00-6:00)', {{ visitors_by_time.night }}],
+            ['morning (6:00-12:00)', {{ visitors_by_time.morning }}],
+            ['afternoon (12:00-18:00)', {{ visitors_by_time.afternoon }}],
+            ['evening (18:00-24:00)', {{ visitors_by_time.evening }}],
         ]);
 
 
         var options = {
             width: 800, height: 240,
-            title: 'Click frequency by time of day',
+            title: 'Click frequency by time of day (relative to UTC time)',
 	    vAxis: {minValue: 0, maxValue: 50},
 	    chartArea: {width: "75%", height: "75%"}
         };
@@ -32,9 +32,9 @@
     }
     $(document).ready(function(){
 	WorldMap({
-	    {% if surl.countries %}
+	    {% if visitors_by_country %}
 	    detail: {
-		{% for country in surl.countries %}
+		{% for country in visitors_by_country %}
 		"{{country}}": "#980000",
 		{% endfor %}
 	    },
@@ -48,15 +48,13 @@
 {% block heading %}usage statistics{% endblock %}
 
 {% block body %}
-<p>The shortened URL: <code>/{{ path }}</code> has been viewed a total of {{ total_clicks }} times, taking {{ unique_clicks }} visitors to <a href="/{{ path }}"><code>{{ target }}</code></a></p>
+    <p>The shortened URL: <code>/{{ path }}</code> has been viewed a total of {{ total_clicks }} times, taking visitors to <a href="/{{ path }}"><code>{{ target }}</code></a></p>
 
-<p>The visitors came from:</p>
+    <p>The visitors came from:</p>
 
-<div>
-  <canvas id="themap" width="800" height="325">
-</div>
+    <div>
+      <canvas id="themap" width="800" height="325">
+    </div>
 
-<div id="chart_div"></div>
-
-<p>PS: these stats are updated hourly</p>
+    <div id="chart_div"></div>
 {% endblock %}

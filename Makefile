@@ -1,25 +1,25 @@
-ERL ?= erl
-APP := erli
+APP:=erli
+REBAR:=./rebar
 
-.PHONY: deps
-
-all: deps
-	@./rebar compile
+all: deps compile
 
 deps:
-	@./rebar get-deps
+	@$(REBAR) get-deps
+
+generate: all
+	@$(REBAR) generate
 
 clean:
-	@./rebar clean
+	@$(REBAR) clean
 
 distclean: clean
-	@./rebar delete-deps
+	@$(REBAR) delete-deps
 
 docs:
 	@erl -noshell -run edoc_run application '$(APP)' '"."' '[]'
 
-test:
-	@./rebar skip_deps=true eunit
+eunit:
+	@$(REBAR) skip_deps=true eunit
 
 compile:
-	@./rebar compile
+	@$(REBAR) compile

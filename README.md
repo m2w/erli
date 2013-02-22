@@ -1,53 +1,61 @@
 # erli
 
-**erli** is an Erlang based URL-shortener, with statistics and 'nsfw' functionality.
+**erli** is an Erlang based URL-shortener, with simple statistics and 'nsfw' functionality.
 
-## statistics
+## Statistics
 
-Every shortened URL keeps track of visitor counts (non-real time total and unique visit counts) and provides estimates for the geographic location of visitors.
+Every shortened URL keeps track of visitor counts (which are unique due to 301 caching) and provides estimates for the geographic location of visitors as well as what time of the day (UTC) they visited the link.
 
 ## 'nsfw' functionality
 
-Appending `?landing=true` to a shortened URL, prevents the automatic redirect, instead a landing page, showing the full target URL and an "are you sure you want to proceed" button, is displayed.
+Appending `?landing=true` to a shortened URL, prevents the automatic redirect, instead a landing page with the full target URL and a "are you sure you want to proceed" button, is displayed.
 
-Reporting inappropriate URLs is kept extremely simple, just add `/report` to the URL.  URLs that reach a certain threshold - this mechanism will be expanded in the future (pull requests are most welcome ;)) - are permanetly banned.
+# community curated
 
-## demo
+Reporting inappropriate URLs is kept extremely simple, just add `/report` to the URL. When the number of reports for a URL exceeds a configurable threshold it is banned.
 
-Live demo will be up as soon as I get around to it.
+## Local setup
 
-To play around with it on localhost, just clone, `make compile`, `./start.sh` and open [http://localhost:8000](http://localhost:8000).
+To experiment locally:
+*make sure you are running > R12B
+*`git clone [git@github.com:m2w/erli.git](git@github.com:m2w/erli.git)`
+*`cd erli`
+*`make all`
+*`./start-erli`
+*open [http://localhost:8000](http://localhost:8000)
 
-## todo
+Alternatively:
+*`git clone [git@github.com:m2w/erli.git](git@github.com:m2w/erli.git)`
+*`cd erli`
+*`make generate`
+*`./rel/erli/bin/erli start`
+*open [http://localhost:8000](http://localhost:8000)
 
-usability:
+Run `make docs` for edocs.
 
-+ thumbnails on the landing pages?
+## Todo
 
 code quality:
 
-+ enforce the Erlang coding standards: [http://www.erlang.se/doc/programming_rules.shtml](http://www.erlang.se/doc/programming_rules.shtml)
-+ eunit tests
++ more tests (goal is around 60% coverage with eunit and full API coverage with the integration tests)
 
-## the api
+## the API
 
 ### root_resource.erl
 
-	GET /  -> displays the index
-	POST / -> create a new shortened URL with a generated path
+	GET /            -> displays the index
+	POST /           -> create a new shortened URL with a server-generated path
 
 ### path_resource.erl
 
-	GET /path    -> grab the redirect to the target URL
-	DELETE /path -> report the target
-	PUT /path    -> create a new shortened url with a preferred path
+	GET /path        -> grab the redirect to the target URL
+	DELETE /path     -> report the target
+	PUT /path        -> create a new shortened url with a preferred path
 	-----------------
 	GET /path/report -> report the target URL
 	-----------------
 	GET /path/stats  -> view stats for the path
 	-----------------
-	GET /path/check -> utility URL to facility 'low' overhead
-	                   checking whether a path is already taken
-					   via ajax (@ W3C please give us an option
-					   to disable the automatic redirect on 30x!)
-
+	GET /path/check  -> utility URL to facility 'low' overhead
+	                    checking whether a path is already taken
+					    via ajax

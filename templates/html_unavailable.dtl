@@ -5,5 +5,5 @@
 {% block heading %}service unavailable{% endblock %}
 
 {% block body %}
-<p><strong>erli</strong> is currently not able to handle your request.</p>
+	<p><strong>erli</strong> is currently not available.</p>
 {% endblock %}

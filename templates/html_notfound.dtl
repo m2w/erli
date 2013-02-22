@@ -5,5 +5,5 @@
 {% block heading %}resource not found{% endblock %}
 
 {% block body %}
-<p>The resource you were trying to reach doesn't exist.</p>
+	<p>The resource you are trying to reach doesn't exist.</p>
 {% endblock %}

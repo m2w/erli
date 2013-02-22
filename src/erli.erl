@@ -1,62 +1,56 @@
 %% @author Moritz Windelen <moritz@tibidat.com>
-%% @copyright 2011-2012 Moritz Windelen.
-
+%% @copyright 2012-2013 Moritz Windelen.
 %% @doc erli startup code
 
 -module(erli).
 -author('Moritz Windelen <moritz@tibidat.com>').
 
--export([start/0, start_link/0, stop/0]).
+%% API
+-export([ensure_deps_started/0, start/0, stop_deps/0]).
 
-ensure_started(App) ->
-    case application:start(App) of
-        ok ->
-            ok;
-        {error, {already_started, App}} ->
-            ok
-    end.
-%%------------------------------------------------------------------------------
-%% @spec start_link() -> {ok,Pid::pid()}
-%% @doc Starts the app for inclusion in a supervisor tree
-%% @end
-%%------------------------------------------------------------------------------
-start_link() ->
-    ensure_started(inets),
-    ensure_started(crypto),
-    ensure_started(mochiweb),
-    ensure_started(mnesia),
-    erli_storage:init({}), % initialize mnesia
-    application:set_env(webmachine, webmachine_logger_module,
-                        webmachine_logger),
-    ensure_started(webmachine),
-    erli_sup:start_link().
+%%%===================================================================
+%%% API functions
+%%%===================================================================
 
-%%------------------------------------------------------------------------------
-%% @spec start() -> ok
-%% @doc Start the erli server.
-%% @end
-%%------------------------------------------------------------------------------
+%% @doc Starts all dependencies and then starts erli.
+-spec start() -> ok | {error, Reason :: term()}.
 start() ->
-    ensure_started(inets),
-    ensure_started(crypto),
-    ensure_started(mochiweb),
-    ensure_started(mnesia),
-    erli_storage:init({}), % initialize mnesia
-    application:set_env(webmachine, webmachine_logger_module,
-                        webmachine_logger),
-    ensure_started(webmachine),
+    ensure_deps_started(),
     application:start(erli).
 
-%%------------------------------------------------------------------------------
-%% @spec stop() -> ok
-%% @doc Stop the erli server.
-%% @end
-%%------------------------------------------------------------------------------
-stop() ->
-    Res = application:stop(erli),
+%% @doc Starts all applications that erli depends upon
+-spec ensure_deps_started() -> ok.
+ensure_deps_started() ->
+    ensure_started(sasl),
+    ensure_started(inets),
+    ensure_started(crypto),
+    ensure_started(mnesia),
+    ensure_started(mochiweb),
+    ensure_started(webmachine),
+    ensure_started(egeoip).
+
+%% @doc Stops all applications that erli depends on
+-spec stop_deps() -> ok | {error, Reason :: term()}.
+stop_deps() ->
+    application:stop(egeoip),
     application:stop(webmachine),
     application:stop(mochiweb),
-    application:stop(crypto),
-    application:stop(inets),
     application:stop(mnesia),
-    Res.
+    application:stop(crypto),
+    application:stop(inets).
+
+%%%===================================================================
+%%% Internal functions
+%%%===================================================================
+
+%% @private
+%% @doc Attempts to start the application and returns `ok', also returns
+%% `ok' if the application is already running.
+-spec ensure_started(App :: atom()) -> ok.
+ensure_started(App) ->
+    case application:start(App) of
+	ok ->
+	    ok;
+	{error, {already_started, App}} ->
+	    ok
+    end.

@@ -1,0 +1,5 @@
+{
+    "status": 403,
+    "message": "access forbidden",
+    "additional_info": "you aren't allowed to access the resource"
+}

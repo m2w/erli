@@ -5,7 +5,7 @@
 {% block heading %}landing{% endblock %}
 
 {% block body %}
-<p>Hello there, internaut! You are about to visit <code>{{ target }}</code></p>
+	<p>Hello there, internaut! You are about to visit <code>{{ target }}</code></p>
 
-<a href="{{ path }}" class="btn primary">Take me there!</a> <a href="/" class="btn">That's not what I came for!</a>
+	<p><a href="/{{ path }}" class="btn btn-success">Take me there!</a> <a href="javascript:history.back()" class="btn btn-danger">That's not what I came for!</a></p>
 {% endblock %}

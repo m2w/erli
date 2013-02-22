@@ -1,6 +1,7 @@
 deps/*
+doc/*
 ebin/*
-priv/log/*
+priv/*logs/*
 priv/mnesia.store/*
 .eunit/*
-doc/*
+rel/erli/*

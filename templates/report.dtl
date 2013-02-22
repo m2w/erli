@@ -5,7 +5,7 @@
 {% block heading %}reporting ToU infringement{% endblock %}
 
 {% block body %}
-<p>You reported the shortened URL: <code>/{{ path }}</code> which points to <code>{{ target }}</code></p>
-<p>Thanks for your help enforcing the <strong>erli</strong> Terms of Use!</p>
-<p>Our mechanical monkeys will determine if the target URL should be purged permanently.</p>
+	<p>You reported the shortened URL: <code>/{{ path }}</code> which points to <code>{{ target }}</code></p>
+	<p>Thanks for helping to enforce the <strong>erli</strong> Terms of Use!</p>
+	<p>Our automated procedures will determine whether the target URL should be purged permanently.</p>
 {% endblock %}

@@ -5,5 +5,5 @@
 {% block heading %}bad gateway{% endblock %}
 
 {% block body %}
-<p>Something caused <strong>erli</strong> to receive a broken request.</p>
+	<p>Something caused <strong>erli</strong> to receive a broken request.</p>
 {% endblock %}

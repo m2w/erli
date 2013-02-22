@@ -1,26 +1,24 @@
 <!doctype html>
 <head>
   <title>erli :: {% block title %}{% endblock %}</title>
-  <link rel="stylesheet" href="http://twitter.github.com/bootstrap/1.4.0/bootstrap.min.css" type="text/css" media="screen" />
-  <link rel="stylesheet" href="/static/erli.css" type="text/css" media="screen" /> <!-- slight modifications of the original bootstrap css-->
-  <script type="text/javascript" src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.7.1.min.js"></script>
-  <script type="text/javascript" src="http://twitter.github.com/bootstrap/1.4.0/bootstrap-twipsy.js"></script>
-  <script type="text/javascript" src="http://twitter.github.com/bootstrap/1.4.0/bootstrap-popover.js"></script>
+  <link rel="stylesheet" href="/static/css/bootstrap.min.css" type="text/css" media="screen" />
+  <link rel="stylesheet" href="/static/css/erli.css" type="text/css" media="screen" />
+  <script type="text/javascript" src=" http://code.jquery.com/jquery-latest.min.js"></script>
+  <script type="text/javascript" src="/static/js/bootstrap.min.js"></script>
   <script type="text/javascript">
     $(document).ready(function() {
-	$("#about_popover").popover();
+    	$("#popover_about").popover({placement: "top", trigger: "hover"});
     });
   </script>
   {% block extra_js %}{% endblock %}
 </head>
 <body>
-  <div class="container">
-    <h1><a href="/">erli</a> <small>{% block heading %}{% endblock %}</small></h1>
-    {% block body %}{% endblock %}
+  <div id="container">
+    <h1><a href="/">erli</a> <small>:: {% block heading %}{% endblock %}</small></h1>
+    <div id="main">{% block body %}{% endblock %}</div>
   </div>
   <footer>
-    Created by Moritz Windelen 2012 <span id="about_popover" rel="popover" data-content="This is a weekend project of mine as a way of deepening my understanding of basic Erlang and to experiment with the very cool Webmachine REST-kit." data-original-title="About erli">(why?)</span>
+    Created by Moritz in 2012 <span id="popover_about" rel="popover" data-content="I created erli to deepen my understanding of basic Erlang and experiment with webmachine" data-original-title="About erli">(why?)</span>
   </footer>
   {% block modal_content %}{% endblock %}
 </body>
-</html>
