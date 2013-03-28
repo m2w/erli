@@ -36,15 +36,13 @@ start_link() ->
 init(_Args) ->
     Pools = erli_utils:get_env(pools),
     PoolSpecs = [gen_pool_spec(P) || P <- Pools],
-    IP = case os:getenv("WEBMACHINE_IP") of
-	     false -> "0.0.0.0";
-	     Any -> Any
-	 end,
+    IP = erli_utils:get_env(ip, "0.0.0.0"),
+    Port = erli_utils:get_env(port, 8000),
     {ok, App} = application:get_application(),
     {ok, Dispatcher} =
 	file:consult(filename:join(code:priv_dir(App),
 				   "dispatch.conf")),
-    WebmachineConfig = [{ip, IP}, {port, 8000},
+    WebmachineConfig = [{ip, IP}, {port, Port},
 			{dispatch, Dispatcher},
 			{error_handler, erli_error_handler}],
     Webmachine = {webmachine_mochiweb,

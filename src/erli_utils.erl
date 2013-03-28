@@ -7,7 +7,8 @@
 
 %% API
 -export([format_req/1, generate_req/1,
-	 get_env/1, get_env/2, is_valid_url/1]).
+	 get_env/1, get_env/2, is_valid_url/1,
+	 is_erli_running/0]).
 
 -include("webmachine/include/webmachine_logger.hrl").
 -include_lib("webmachine/include/webmachine.hrl").
@@ -24,6 +25,17 @@
 %%%===================================================================
 %%% API
 %%%===================================================================
+
+%% @doc Naive check whether erli is running on this system.
+-spec is_erli_running() -> ok | {error, not_running}.
+is_erli_running() ->
+    {ok, Nodes} = net_adm:names(),
+    case check_for_erli(Nodes) of
+	found ->
+	    ok;
+	not_found ->
+	    {error, not_running}
+    end.
 
 %% @doc Provides a simple way to generate valid webmachine requests for
 %% testing purposes.
@@ -82,6 +94,16 @@ is_valid_url(Url) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+
+%% @private
+%% @doc Iterate over a list of Nodes to see if erli is running.
+-spec check_for_erli([{string(), integer()}]) -> found | not_found.
+check_for_erli([{"erli_node", _Port} | _Nodes]) ->
+    found;
+check_for_erli([{_Name, _Port} | Nodes]) ->
+    check_for_erli(Nodes);
+check_for_erli([]) ->
+    not_found.
 
 %%--------------------------------------------------------------------
 %% Everything below this comment is taken directly and unmodified from

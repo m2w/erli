@@ -9,8 +9,8 @@
 -export([allowed_methods/2, content_types_provided/2,
 	 init/1, post_is_create/2, process_post/2]).
 
-%% Content provider
--export([to_html/2]).
+%% Content providers
+-export([to_html/2, to_json/2]).
 
 %% Content-Type handlers
 -export([from_json/2, from_urlencoded/2]).
@@ -25,7 +25,8 @@ allowed_methods(RD, Ctx) ->
     {['GET', 'POST'], RD, Ctx}.
 
 content_types_provided(RD, Ctx) ->
-    {[{"text/html", to_html}], RD, Ctx}.
+    {[{"text/html", to_html},
+     {"application/json", to_json}], RD, Ctx}.
 
 post_is_create(RD, Ctx) ->
     {false, RD, Ctx}.
@@ -48,11 +49,15 @@ process_post(RD, Ctx) ->
     end.
 
 %%%=============================================================================
-%%% Content Provider
+%%% Content Providers
 %%%=============================================================================
 
 to_html(RD, Ctx) ->
     {ok, Content} = index_dtl:render([]),
+    {Content, RD, Ctx}.
+
+to_json(RD, Ctx) ->
+    Content = jsx:encode(<<"">>),
     {Content, RD, Ctx}.
 
 %%%=============================================================================

@@ -1,5 +1,5 @@
 %% @author Moritz Windelen <moritz@tibidat.com>
-%% @copyright 2012-2013 Moritz Windelen.
+% @copyright 2012-2013 Moritz Windelen.
 %% @doc erli startup code
 
 -module(erli).
