@@ -16,20 +16,21 @@ Reporting inappropriate URLs is kept extremely simple, just add `/report` to the
 
 ## Local setup
 
-To experiment locally:
-*make sure you are running > R12B
-*`git clone [git@github.com:m2w/erli.git](git@github.com:m2w/erli.git)`
-*`cd erli`
-*`make all`
-*`./start-erli`
-*open [http://localhost:8000](http://localhost:8000)
+Make sure you are running > R12B. To experiment locally:
+
+* `git clone [git@github.com:m2w/erli.git](git@github.com:m2w/erli.git)`
+* `cd erli`
+* `make all`
+* `./start-erli`
+* open [http://localhost:8000](http://localhost:8000)
 
 Alternatively:
-*`git clone [git@github.com:m2w/erli.git](git@github.com:m2w/erli.git)`
-*`cd erli`
-*`make generate`
-*`./rel/erli/bin/erli start`
-*open [http://localhost:8000](http://localhost:8000)
+
+* `git clone [git@github.com:m2w/erli.git](git@github.com:m2w/erli.git)`
+* `cd erli`
+* `make generate`
+* `./rel/erli/bin/erli start`
+* open [http://localhost:8000](http://localhost:8000)
 
 Run `make docs` for edocs.
 

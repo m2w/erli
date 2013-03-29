@@ -1,13 +1,8 @@
 APP:=erli
 REBAR:=./rebar
 
-all: deps compile
-
-deps:
+dep:
 	@$(REBAR) get-deps
-
-generate: all
-	@$(REBAR) generate
 
 clean:
 	@$(REBAR) clean
@@ -23,3 +18,8 @@ eunit:
 
 compile:
 	@$(REBAR) compile
+
+all: dep compile
+
+generate: all
+	@$(REBAR) generate
