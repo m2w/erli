@@ -16,7 +16,8 @@
 	 meta_proplist/2,
 	 generate_etag/1,
 	 unix_timestamp/0,
-	 parse_range_header/2]).
+	 parse_range_header/2,
+	 build_content_range_header/2]).
 
 -include("models.hrl").
 -include_lib("webmachine/include/webmachine.hrl").
@@ -26,10 +27,20 @@
 %%-----------------------------------------------------------
 -type file_path() :: string().
 -type maybe_int() :: [] | integer().
+-type collection_type() :: targets | paths | visits.
 
 %%-----------------------------------------------------------
 %% API Methods
 %%-----------------------------------------------------------
+
+-spec build_content_range_header(collection_type(), [{bitstring(), integer()}]) ->
+					string().
+build_content_range_header(Type, Meta) ->
+    ColSize = proplists:get_value(<<"totalCollectionSize">>, Meta),
+    End = proplists:get_value(<<"rangeEnd">>, Meta),
+    Start = proplists:get_value(<<"rangeStart">>, Meta),
+    atom_to_list(Type) ++ " " ++ integer_to_list(Start) ++ "-" ++
+	integer_to_list(End) ++ "/" ++ integer_to_list(ColSize).
 
 -spec priv_dir(atom()) -> file_path().
 priv_dir(Mod) ->
@@ -59,11 +70,23 @@ add_json_response(RD, Body) ->
 
 -spec meta_proplist(model_name(), query_range()) -> [{bitstring(), term()}].
 meta_proplist(Model, {Start, End}) ->
-    [{<<"totalCollectionSize">>, erli_storage:count(Model)},
-     {<<"objectCount">>, End-Start},
-     {<<"rangeStart">>, Start},
-     {<<"rangeEnd">>, End},
-     {<<"maxCollectionOffset">>, erli_utils:get_env(max_collection_offset)}].
+    Total = erli_storage:count(Model),
+    M = [{<<"totalCollectionSize">>, Total},
+	 {<<"objectCount">>, End-Start},
+	 {<<"rangeStart">>, Start},
+	 {<<"rangeEnd">>, End},
+	 {<<"maxCollectionOffset">>, erli_utils:get_env(max_collection_offset)}],
+    %% special case: less total objects than the default offset
+    %% @TODO: this should be hotswapped out once the demo reaches over 25 records
+    if End > Total ->
+	    M1 = lists:keyreplace(<<"objectCount">>,
+				  1, M, {<<"objectCount">>, Total}),
+	    lists:keyreplace(<<"rangeEnd">>,
+			     1, M1, {<<"rangeEnd">>, Total});
+       true ->
+	    M
+    end.
+%% END USELESS BOILERPLATE
 
 -spec to_proplist(model()) -> [{bitstring(), term()}].
 to_proplist(#target{id=Id, record_number=_RN, url=Url, last_modified=LM,
@@ -84,7 +107,7 @@ to_proplist(#target{id=Id, record_number=_RN, url=Url, last_modified=LM,
        {<<"thumbnail">>, <<"/static/thumbnails/", Thumbnail/bitstring>>}]}];
 to_proplist(Collection) when is_list(Collection) ->
     lists:foldl(fun(Obj, Acc) ->
-		      to_proplist(Obj) ++ Acc
+			to_proplist(Obj) ++ Acc
 		end, [], Collection).
 
 -spec generate_etag(model() | {list(), list()}) -> string().

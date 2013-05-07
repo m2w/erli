@@ -57,24 +57,10 @@ options(RD, entity) ->
     {[{"Content-Length", "0"},
       {"Allow", "GET, DELETE, HEAD, OPTIONS"}], RD, entity}.
 
-resource_exists(RD, {collection, {Start, End}=Range}) ->
+resource_exists(RD, {collection, Range}) ->
     Data = erli_storage:read_multiple(targets, Range),
-    M = erli_utils:meta_proplist(target, Range),
-    ColSize = proplists:get_value(<<"totalCollectionSize">>, M),
-    %% special case: less total objects than the default offset
-    %% @TODO: this should be hotswapped out once the demo reaches over 25 records
-    {E, Meta} = if End > ColSize ->
-		M2 = lists:keyreplace(<<"objectCount">>,
-				      1, M, {<<"objectCount">>, ColSize}),
-		M3 = lists:keyreplace(<<"rangeEnd">>,
-				      1, M2, {<<"rangeEnd">>, ColSize}),
-		{ColSize, M3};
-	   true -> {End, M}
-	end,
-    CR = "targets " ++ integer_to_list(Start) ++ "-" ++
-	integer_to_list(E) ++ "/" ++ integer_to_list(ColSize),
-    NRD = wrq:set_resp_header("Content-Range", CR, RD),
-    {true, NRD, {Meta, Data}};
+    Meta = erli_utils:meta_proplist(target, Range),
+    {true, RD, {Meta, Data}};
 resource_exists(RD, entity) ->
     Id = list_to_binary(wrq:path_info(id, RD)),
     case erli_storage:read(target, Id) of
@@ -102,9 +88,11 @@ as_json(RD, Record) when is_record(Record, target) ->
 as_json(RD, {Meta, Objects}=Ctx) ->
     Data = jsx:encode([{<<"posts">>, erli_utils:to_proplist(Objects)},
 		       {<<"meta">>, Meta}]),
-    {Data, RD, Ctx}.
+    ContentRangeHeader = erli_utils:build_content_range_header(targets, Meta),
+    NRD = wrq:set_resp_header("Content-Range", ContentRangeHeader, RD),
+    {Data, NRD, Ctx}.
 
-process_post(RD, collection=Ctx) ->
+process_post(RD, Ctx) ->
     case mochiweb_util:parse_header(wrq:get_req_header("Content-Type", RD)) of
 	{"application/x-www-form-urlencoded", _} ->
 	    handle_post(url_form, RD, Ctx);
