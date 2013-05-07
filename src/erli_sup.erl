@@ -39,8 +39,12 @@ init([]) ->
     {ok, Ip} = application:get_env(webmachine, ip),
     {ok, Port} = application:get_env(webmachine, port),
     {ok, App} = application:get_application(?MODULE),
-    {ok, Dispatch} = file:consult(filename:join([erli_utils:priv_dir(App),
-                                                 "dispatch.conf"])),
+    DispatchDir = case application:get_env(webmachine, dispatch_dir,
+					   erli_utils:priv_dir(App)) of
+		      {ok, Dir} -> Dir;
+		      Dir -> Dir
+		  end,
+    {ok, Dispatch} = file:consult(filename:join([DispatchDir, "dispatch.conf"])),
     Config = [{ip, Ip},
 	      {port, Port},
 	      {log_dir, "priv/log"},
