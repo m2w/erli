@@ -12,7 +12,8 @@
 
 %% API
 -export([http_body_to_form/1,
-	 validate/2]).
+	 validate/2,
+	 is_url/1]).
 
 -export_type([validator_fun/0, validator/0]).
 
@@ -57,6 +58,15 @@ validate(Form, Validators) ->
 	ValidationErrors -> ValidationErrors
     end,
     valid.
+
+-spec is_url(bitstring()) -> boolean().
+is_url(PossibleUrl) ->
+    match =:= re:run(PossibleUrl,
+		     <<"\\b((?:https?://|www\\d{0,3}[.]|[a-z0-9.\\-]"
+		       "+[.][a-z]{2,4}/)(?:[^\\s()<>]+|\\(([^\\s()<>]"
+		       "+|(\\([^\s()<>]+\\)))*\\))+(?:\\(([^\\s()<>]"
+		       "+|(\\([^\\s()<>]+\\)))*\\)|[^\\s`!()\\[\\]{};"
+		       ":'\".,<\>?«»“”‘’]))">>, [{capture, none}]).
 
 %%-----------------------------------------------------------
 %% Internal Methods
