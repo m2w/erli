@@ -37,14 +37,6 @@ allowed_methods(RD, collection) ->
 allowed_methods(RD, entity) ->
     {['GET', 'DELETE', 'HEAD', 'OPTIONS'], RD, entity}.
 
-options(RD, collection) ->
-    {[{"Content-Length", "0"},
-      {"Accept-Ranges", "targets"},
-      {"Allow", "GET, POST, HEAD, OPTIONS"}], RD, collection};
-options(RD, entity) ->
-    {[{"Content-Length", "0"},
-      {"Allow", "GET, DELETE, HEAD, OPTIONS"}], RD, entity}.
-
 malformed_request(RD, collection) ->
     case erli_utils:parse_range_header(RD, target) of
 	{error, invalid_range} ->
@@ -52,12 +44,20 @@ malformed_request(RD, collection) ->
 	    NRD = wrq:set_resp_header("Content-Range", ContentRange, RD),
 	    {true, NRD, collection};
 	Range ->
-	    {false, RD, Range}
+	    {false, RD, {collection, Range}}
     end;
 malformed_request(RD, entity) ->
     {false, RD, entity}.
 
-resource_exists(RD, {Start, End}=Range) ->
+options(RD, {collection, _}) ->
+    {[{"Content-Length", "0"},
+      {"Accept-Ranges", "targets"},
+      {"Allow", "GET, POST, HEAD, OPTIONS"}], RD, collection};
+options(RD, entity) ->
+    {[{"Content-Length", "0"},
+      {"Allow", "GET, DELETE, HEAD, OPTIONS"}], RD, entity}.
+
+resource_exists(RD, {collection, {Start, End}=Range}) ->
     Data = erli_storage:read_multiple(targets, Range),
     M = erli_utils:meta_proplist(target, Range),
     ColSize = proplists:get_value(<<"totalCollectionSize">>, M),
