@@ -150,7 +150,8 @@ maybe_store(Target, RD) ->
 	    NRD = erli_utils:add_json_response(RD, Body),
 	    {{halt, 422}, NRD, Target};
 	SavedTarget ->
-	    Body = jsx:encode(erli_utils:to_proplist(SavedTarget)),
+	    Body = jsx:encode([{<<"posts">>,
+				erli_utils:to_proplist(SavedTarget)}]),
 	    NRD = erli_utils:add_json_response(RD, Body),
 	    {true, NRD, Target}
     end.
