@@ -176,16 +176,14 @@ maybe_create_table(TabName, TabSpec) ->
 
 -spec fix_schema([node()]) -> ok.
 fix_schema(Nodes) ->
-    ExistingDiskCopies = mnesia:table_info(schema, disc_copies),
     ExistingRamCopies = mnesia:table_info(schema, ram_copies),
-    NodesWithoutDiskCopies =
-	[X || X <- Nodes, not lists:member(X, ExistingDiskCopies)],
     NodesWithRamCopies =
 	[X || X <- Nodes, lists:member(X, ExistingRamCopies)],
-    NodesWithoutSchema =
-	[X || X <- Nodes, not lists:member(X, NodesWithRamCopies)],
     [{atomic, ok} = mnesia:change_table_copy_type(schema, Node, disc_copies)
      || Node <- NodesWithRamCopies],
+    DiskCopies = mnesia:table_info(schema, disc_copies),
+    NodesWithoutSchema =
+	[X || X <- Nodes, not lists:member(X, DiskCopies)],
     case NodesWithoutSchema of
 	[] ->
 	    ok;
@@ -232,10 +230,10 @@ extract({Objects, Cont}, Acc) ->
 
 -spec generate_id(target | path) -> id() | {error, unable_to_generate_id}.
 generate_id(Table) ->
-    generate_id(0, Table).
+    generate_id(Table, 0).
 
 -spec generate_id(target | path, integer()) -> id() | {error, unable_to_generate_id}.
-generate_id(Attempts, Table) when Attempts < 20 ->
+generate_id(Table, Attempts) when Attempts < 20 ->
     Id = re:replace(
 	   base64:encode(
 	     crypto:rand_bytes(3)),
@@ -245,7 +243,7 @@ generate_id(Attempts, Table) when Attempts < 20 ->
 	[] ->
 	    Id;
 	_Record ->
-	    generate_id(Attempts+1)
+	    generate_id(Table, Attempts+1)
     end;
-generate_id(_Attempts, _Table) ->
+generate_id(_Table, _Attempts) ->
     {error, unable_to_generate_id}.

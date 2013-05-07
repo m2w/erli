@@ -87,7 +87,7 @@ to_proplist(Collection) when is_list(Collection) ->
 		      to_proplist(Obj) ++ Acc
 		end, [], Collection).
 
--spec generate_etag(model() | {list(), list()}) -> bitstring().
+-spec generate_etag(model() | {list(), list()}) -> string().
 generate_etag(Record) when is_record(Record, target) ->
     mochihex:to_hex(erlang:md5(jsx:encode(to_proplist(Record))));
 generate_etag({Meta, Objects}) ->

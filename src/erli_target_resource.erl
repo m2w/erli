@@ -48,9 +48,8 @@ options(RD, entity) ->
 malformed_request(RD, collection) ->
     case erli_utils:parse_range_header(RD, target) of
 	{error, invalid_range} ->
-	    NRD = wrq:set_resp_header("Content-Range",
-				      "*/" ++ integer_to_list(
-						erli_storage:count(target))),
+	    ContentRange = "*/" ++ integer_to_list(erli_storage:count(target)),
+	    NRD = wrq:set_resp_header("Content-Range", ContentRange, RD),
 	    {true, NRD, collection};
 	Range ->
 	    {false, RD, Range}
@@ -106,7 +105,7 @@ as_json(RD, {Meta, Objects}=Ctx) ->
     {Data, RD, Ctx}.
 
 process_post(RD, collection=Ctx) ->
-    case webmachine_util:parse_header(wrq:get_req_header("Content-Type", RD)) of
+    case mochiweb_util:parse_header(wrq:get_req_header("Content-Type", RD)) of
 	{"application/x-www-form-urlencoded", _} ->
 	    handle_post(url_form, RD, Ctx);
 	{"application/json", _} ->
