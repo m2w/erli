@@ -1,198 +1,164 @@
-%% @author Moritz Windelen <moritz@tibidat.com>
-%% @copyright 2012-2013 Moritz Windelen.
-%% @doc erli utility methods.
+%%%==========================================================
+%%% @author Moritz Windelen
+%%% @version 0.1a
+%%% @doc A utility library for erli.
+%%% Contains a number of resource related utility functions.
+%%% @end
+%%%==========================================================
 
 -module(erli_utils).
--author('Moritz Windelen <moritz@tibidat.com>').
 
 %% API
--export([format_req/1, generate_req/1,
-	 get_env/1, get_env/2, is_valid_url/1,
-	 is_erli_running/0]).
+-export([to_proplist/1,
+	 get_env/1,
+	 priv_dir/1,
+	 add_json_response/2,
+	 meta_proplist/2,
+	 generate_etag/1,
+	 unix_timestamp/0,
+	 parse_range_header/2]).
 
--include("webmachine/include/webmachine_logger.hrl").
+-include("models.hrl").
 -include_lib("webmachine/include/webmachine.hrl").
 
--define(URL_REGEX,
-	["^(?:[a-zA-Z0-9]+://)(?:(?:(?:[a-zA-Z0-9]+.)+("
-	 "?:[a-zA-Z]+))|(?:(?:[0-9]+.){3}(?:[0-9]+))|(?"
-	 ":(?:[a-f0-9]+:)+(?:[a-f0-9]+))(?:(?: "
-	 "*$)|(?:(?:[:/?]).+$)))"]).
--define(HTML_REGEX, <<".*text/html.*">>).
--define(JSON_REGEX, <<".*application/json.*">>).
--define(ANY_REGEX, <<".*\\*/\\*.*">>).
+%%-----------------------------------------------------------
+%% Types
+%%-----------------------------------------------------------
+-type file_path() :: string().
+-type maybe_int() :: [] | integer().
 
-%%%===================================================================
-%%% API
-%%%===================================================================
+%%-----------------------------------------------------------
+%% API Methods
+%%-----------------------------------------------------------
 
-%% @doc Naive check whether erli is running on this system.
--spec is_erli_running() -> ok | {error, not_running}.
-is_erli_running() ->
-    {ok, Nodes} = net_adm:names(),
-    case check_for_erli(Nodes) of
-	found ->
-	    ok;
-	not_found ->
-	    {error, not_running}
+-spec priv_dir(atom()) -> file_path().
+priv_dir(Mod) ->
+    case code:priv_dir(Mod) of
+        {error, bad_name} ->
+            Ebin = filename:dirname(code:which(Mod)),
+            filename:join(filename:dirname(Ebin), "priv");
+        PrivDir ->
+            PrivDir
     end.
 
-%% @doc Provides a simple way to generate valid webmachine requests for
-%% testing purposes.
--spec generate_req(Path :: string()) -> #wm_reqdata{}.
-generate_req(Path) ->
-    Req0 = wrq:create(get, "1.1", Path, gb_trees:empty()),
-    {ok, CWD} = file:get_cwd(),
-    DispatchPath = case lists:reverse(CWD) of
-		       "tinue." ++ _Rest ->
-			   filename:join("../priv", "dispatch.conf");
-		       _Other ->
-			   filename:join("./priv", "dispatch.conf")
-		   end,
-    {ok, Dispatcher} = file:consult(DispatchPath),
-    {_Mod, _ModOpts, HostTokens, Port, PathTokens, Bindings,
-     AppRoot, StringPath} =
-	webmachine_dispatcher:dispatch(Path, Dispatcher, Req0),
-    wrq:load_dispatch_data(Bindings, HostTokens, Port,
-			   PathTokens, AppRoot, StringPath, Req0).
-
-%% @doc If an application env var has been specified for the `Key', it is
-%% returned, else the function returns `undefined'.
--spec get_env(Key :: atom()) -> undefined | term().
+-spec get_env(atom()) -> undefined | term().
 get_env(Key) ->
-    case application:get_env(erli, Key) of
+    case application:get_env(Key) of
 	undefined ->
 	    undefined;
 	{ok, Val} ->
 	    Val
     end.
 
-%% @doc If an application env var has been specified for the `Key', it is
-%% returned, else the function returns the default value.
--spec get_env(Key :: atom(), Default :: term()) -> term().
-get_env(Key, Default) ->
-    case application:get_env(erli, Key) of
-	undefined ->
-	    Default;
-	{ok, Val} ->
-	    Val
-    end.
+-spec add_json_response(#wm_reqdata{}, bitstring()) -> #wm_reqdata{}.
+add_json_response(RD, Body) ->
+    wrq:set_resp_body(Body,
+		      wrq:set_resp_header("Content-Type",
+					  "application/json", RD)).
 
-%% @doc Returns whether the URL complies with a validation regex that ensures
-%% only valid URL/URIs are accepted. Currently only ASCII URLs count as
-%% being `valid'.
--spec is_valid_url(Url :: binary()) -> boolean().
-is_valid_url(Url) ->
-    case re:run(Url, ?URL_REGEX,
-		[dotall, caseless, {capture, none}]) of
-	match ->
-	    true;
-	nomatch ->
-	    false
-    end.
 
-%%%===================================================================
-%%% Internal functions
-%%%===================================================================
+-spec meta_proplist(model_name(), query_range()) -> [{bitstring(), term()}].
+meta_proplist(Model, {Start, End}) ->
+    [{<<"totalCollectionSize">>, erli_storage:count(Model)},
+     {<<"objectCount">>, End-Start},
+     {<<"rangeStart">>, Start},
+     {<<"rangeEnd">>, End},
+     {<<"maxCollectionOffset">>, erli_utils:get_env(max_collection_offset)}].
 
-%% @private
-%% @doc Iterate over a list of Nodes to see if erli is running.
--spec check_for_erli([{string(), integer()}]) -> found | not_found.
-check_for_erli([{"erli_node", _Port} | _Nodes]) ->
-    found;
-check_for_erli([{_Name, _Port} | Nodes]) ->
-    check_for_erli(Nodes);
-check_for_erli([]) ->
-    not_found.
-
-%%--------------------------------------------------------------------
-%% Everything below this comment is taken directly and unmodified from
-%% `webmachine_logger.erl`, which is part of the webmachine project:
-%%
-%% -author Justin Sheehy <justin@basho.com>
-%% -author Andy Gross <andy@basho.com>
-%% -copyright 2007-2008 Basho Technologies
-%%
-%%    Licensed under the Apache License, Version 2.0 (the "License");
-%%    you may not use this file except in compliance with the License.
-%%    You may obtain a copy of the License at
-%%
-%%        http://www.apache.org/licenses/LICENSE-2.0
-%%
-%%    Unless required by applicable law or agreed to in writing, software
-%%    distributed under the License is distributed on an "AS IS" BASIS,
-%%    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-%%    See the License for the specific language governing permissions and
-%%    limitations under the License.
-%%
-%%--------------------------------------------------------------------
-format_req(#wm_log_data{method = Method,
-			headers = Headers, peer = Peer, path = Path,
-			version = Version, response_code = ResponseCode,
-			response_length = ResponseLength}) ->
-    User = "-",
-    Time = fmtnow(),
-    Status = integer_to_list(ResponseCode),
-    Length = integer_to_list(ResponseLength),
-    Referer = case mochiweb_headers:get_value("Referer",
-					      Headers)
-	      of
-		  undefined -> "";
-		  R -> R
-	      end,
-    UserAgent = case
-		    mochiweb_headers:get_value("User-Agent", Headers)
-		of
-		    undefined -> "";
-		    U -> U
+-spec to_proplist(model()) -> [{bitstring(), term()}].
+to_proplist(#target{id=Id, record_number=_RN, url=Url, last_modified=LM,
+		    is_banned=B, flag_count=FC, screenshot_id=SC}) ->
+    Thumbnail = case SC of
+		    undefined ->
+			get_env(thumbnail_placeholder_id);
+		    Id ->
+			Id
 		end,
-    fmt_alog(Time, Peer, User, fmt_method(Method), Path,
-	     Version, Status, Length, Referer, UserAgent).
+    [{<<"id">>, Id},
+     {<<"href">>, <<"/api/targets/", Id/bitstring>>},
+     {<<"bannedStatus">>, B},
+     {<<"flagCount">>, FC},
+     {<<"lastModified">>, LM},
+     {<<"rels">>,
+      [{<<"targetUrl">>, Url},
+       {<<"thumbnail">>, <<"/static/thumbnails/", Thumbnail/bitstring>>}]}];
+to_proplist(Collection) when is_list(Collection) ->
+    lists:foldl(fun(Obj, Acc) ->
+		      to_proplist(Obj) ++ Acc
+		end, [], Collection).
 
-fmt_method(M) when is_atom(M) -> atom_to_list(M).
+-spec generate_etag(model() | {list(), list()}) -> bitstring().
+generate_etag(Record) when is_record(Record, target) ->
+    mochihex:to_hex(erlang:md5(jsx:encode(to_proplist(Record))));
+generate_etag({Meta, Objects}) ->
+    LMS = lists:sum(
+	    lists:map(fun(O) ->
+			      proplists:get_value(<<"lastModified">>, O)
+		      end, Objects)),
+    MetaMD5 = erlang:md5(jsx:encode(Meta)),
+    mochihex:to_hex(<<MetaMD5/binary, LMS/integer>>).
 
-fmtnow() ->
-    {{Year, Month, Date}, {Hour, Min, Sec}} =
-	calendar:local_time(),
-    io_lib:format("[~2..0w/~s/~4..0w:~2..0w:~2..0w:~2..0w "
-		  "~s]",
-		  [Date, month(Month), Year, Hour, Min, Sec, zone()]).
 
-zone() ->
-    Time = erlang:universaltime(),
-    LocalTime = calendar:universal_time_to_local_time(Time),
-    DiffSecs =
-	calendar:datetime_to_gregorian_seconds(LocalTime) -
-	calendar:datetime_to_gregorian_seconds(Time),
-    zone(DiffSecs / 3600 * 100).
+-spec unix_timestamp() -> pos_integer().
+unix_timestamp() ->
+    UTC = calendar:datetime_to_gregorian_seconds(calendar:universal_time()),
+    UnixEpoch = calendar:datetime_to_gregorian_seconds({{1970,1,1},{0,0,0}}),
+    UTC - UnixEpoch.
 
-fmt_alog(Time, Ip, User, Method, Path, {VM, Vm}, Status,
-	 Length, Referrer, UserAgent) ->
-    [fmt_ip(Ip), " - ", User, [$\s], Time, [$\s, $"],
-     Method, " ", Path, " HTTP/", integer_to_list(VM), ".",
-     integer_to_list(Vm), [$", $\s], Status, [$\s], Length,
-     [$\s, $"], Referrer, [$", $\s, $"], UserAgent,
-     [$", $\n]].
+-spec parse_range_header(#wm_reqdata{}, model_name()) ->
+				query_range() |
+				{error, invalid_range}.
+parse_range_header(RD, Model) ->
+    Default = get_env(default_collection_offset),
+    RH = wrq:get_req_header("Range", RD),
+    case RH of
+	undefined ->
+	    {0, Default};
+	Val ->
+	    parse_range(string:strip(Val), Model)
+    end.
 
-fmt_ip(IP) when is_tuple(IP) -> inet_parse:ntoa(IP);
-fmt_ip(undefined) -> "0.0.0.0";
-fmt_ip(HostName) -> HostName.
+%%-----------------------------------------------------------
+%% Internal Methods
+%%-----------------------------------------------------------
 
-month(1) -> "Jan";
-month(2) -> "Feb";
-month(3) -> "Mar";
-month(4) -> "Apr";
-month(5) -> "May";
-month(6) -> "Jun";
-month(7) -> "Jul";
-month(8) -> "Aug";
-month(9) -> "Sep";
-month(10) -> "Oct";
-month(11) -> "Nov";
-month(12) -> "Dec".
+-spec parse_range(string(), model_name()) ->
+			 query_range() |
+			 {error, invalid_range}.
+parse_range(HeaderValue, Model) ->
+    M = atom_to_list(Model),
+    case re:run(HeaderValue, "(\\w+)=(\\d*)-(\\d*)",
+		[{capture, all_but_first, list}]) of
+	{match, [Unit, X, Y]} when Unit =:= M ->
+	    Max = erli_storage:count(Model),
+	    MaxOffset = erli_utils:get_env(max_collection_offset),
+	    extract_range(to_int(X), to_int(Y), MaxOffset, Max);
+	_ -> % wrong unit specified or otherwise invalid range spec
+	    {error, invalid_range}
+    end.
 
-%% Ugly reformatting code to get times like +0000 and -1300
-zone(Val) when Val < 0 ->
-    io_lib:format("-~4..0w", [trunc(abs(Val))]);
-zone(Val) when Val >= 0 ->
-    io_lib:format("+~4..0w", [trunc(abs(Val))]).
+
+-spec to_int(string()) -> maybe_int().
+to_int([]) ->
+    [];
+to_int(String) ->
+    try list_to_integer(String)
+    catch _ -> []
+    end.
+
+-spec extract_range(maybe_int(), maybe_int(), pos_integer(), pos_integer()) ->
+			   query_range() |
+			   {error, invalid_range}.
+extract_range([], [], _, _) -> % unit=-
+    {error, invalid_range};
+extract_range([], Y, MaxOffset, Max) when Max-Y =< MaxOffset -> % unit=-Y
+    {Y, Max-Y};
+extract_range(X, [], MaxOffset, Max) when X+MaxOffset =< Max -> % unit=X-
+    {X, X+MaxOffset};
+extract_range(X, [], _, Max) -> % unit=X-
+    {X, Max};
+extract_range(X, Y, MaxOffset, Max)
+  when Y > X andalso Y-X =< MaxOffset andalso Y =< Max -> % unit=X-Y
+    {X, Y};
+extract_range(_, _, _, _) ->
+    {error, invalid_range}.

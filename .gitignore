@@ -1,7 +1,2 @@
-deps/*
-doc/*
-ebin/*
-priv/*logs/*
-priv/mnesia.store/*
-.eunit/*
-rel/erli/*
+ebin/
+Mnesia.nonode@nohost

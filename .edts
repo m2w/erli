@@ -1,1 +1,3 @@
-:lib-dirs '("deps" "templates" "include")
+:name "backend"
+:node-sname "backend"
+:lib-dirs '("deps" "include")

@@ -1,10 +1,18 @@
 %%-*- mode: erlang -*-
-{application,
- erli,
- [{description, "A webmachine based URL shortener"},
-  {vsn, "0.5.0"},
+{application, erli,
+ [
+  {description, "A URL shortener"},
+  {vsn, "0.1a"},
   {modules, []},
   {registered, []},
-  {applications, [kernel, stdlib, inets, crypto, mochiweb, mnesia, webmachine, egeoip]},
-  {mod, {erli_app, []}}
+  {applications, [
+                  kernel,
+                  stdlib,
+                  inets,
+                  crypto,
+                  mochiweb,
+                  webmachine
+                 ]},
+  {mod, { erli_app, []}},
+  {env, []}
  ]}.
