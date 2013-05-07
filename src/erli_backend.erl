@@ -21,8 +21,6 @@ start_link() ->
     ensure_started(inets),
     ensure_started(crypto),
     ensure_started(mochiweb),
-    application:set_env(webmachine, webmachine_logger_module,
-                        webmachine_log),
     ensure_started(webmachine),
     ensure_started(mnesia),
     erli_sup:start_link().
@@ -32,8 +30,6 @@ start() ->
     ensure_started(inets),
     ensure_started(crypto),
     ensure_started(mochiweb),
-    application:set_env(webmachine, webmachine_logger_module,
-                        webmachine_log),
     ensure_started(webmachine),
     ensure_started(mnesia),
     application:start(erli).
