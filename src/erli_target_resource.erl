@@ -71,7 +71,7 @@ resource_exists(RD, {Start, End}=Range) ->
 		{ColSize, M3};
 	   true -> {End, M}
 	end,
-    CR = integer_to_list(Start) ++ "-" ++
+    CR = "targets " ++ integer_to_list(Start) ++ "-" ++
 	integer_to_list(E) ++ "/" ++ integer_to_list(ColSize),
     NRD = wrq:set_resp_header("Content-Range", CR, RD),
     {true, NRD, {Meta, Data}};
