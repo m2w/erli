@@ -38,7 +38,7 @@ allowed_methods(RD, entity) ->
     {['GET', 'DELETE', 'HEAD', 'OPTIONS'], RD, entity}.
 
 malformed_request(RD, collection) ->
-    case erli_utils:parse_range_header(RD, target) of
+    case erli_utils:parse_range_header(RD, targets) of
 	{error, invalid_range} ->
 	    ContentRange = "*/" ++ integer_to_list(erli_storage:count(target)),
 	    NRD = wrq:set_resp_header("Content-Range", ContentRange, RD),

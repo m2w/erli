@@ -115,9 +115,7 @@ generate_etag(Record) when is_record(Record, target) ->
     mochihex:to_hex(erlang:md5(jsx:encode(to_proplist(Record))));
 generate_etag({Meta, Objects}) ->
     LMS = lists:sum(
-	    lists:map(fun(O) ->
-			      proplists:get_value(<<"lastModified">>, O)
-		      end, Objects)),
+	    lists:map(fun(O) -> O#target.last_modified end, Objects)),
     MetaMD5 = erlang:md5(jsx:encode(Meta)),
     mochihex:to_hex(<<MetaMD5/binary, LMS/integer>>).
 
@@ -145,7 +143,7 @@ parse_range_header(RD, Model) ->
 %% Internal Methods
 %%-----------------------------------------------------------
 
--spec parse_range(string(), model_name()) ->
+-spec parse_range(string(), targets | visits | paths) ->
 			 query_range() |
 			 {error, invalid_range}.
 parse_range(HeaderValue, Model) ->
