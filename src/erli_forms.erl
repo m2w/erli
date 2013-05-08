@@ -57,7 +57,7 @@ validate(Form, [{Key, Validators}|RemSpecs], Issues) ->
     IsRequired = lists:member(required, Validators),
     case {Value, IsRequired}  of
 	{undefined, true} ->
-	    validate(Form, RemSpecs, [{Key, <<"field is required">>}|Issues]);
+	    validate(Form, RemSpecs, [{Key, [<<"field is required">>]}|Issues]);
 	{undefined, false} ->
 	    validate(Form, RemSpecs, Issues);
 	{Val, _} ->
