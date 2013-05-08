@@ -118,9 +118,9 @@ delete_completed(RD, Record) when is_record(Record, target) ->
 -spec handle_post([{bitstring(), term()}], #wm_reqdata{}, term()) ->
 			 {true | {halt, 422}, #wm_reqdata{}, term()}.
 handle_post(Form, RD, Ctx) ->
-    case erli_forms:validate(Form, [{target_url, [required, is_url]}]) of
+    case erli_forms:validate(Form, [{<<"target_url">>, [required, is_url]}]) of
 	valid ->
-	    Target = #target{url=proplists:get_value(target_url, Form)},
+	    Target = #target{url=proplists:get_value(<<"target_url">>, Form)},
 	    maybe_store(Target, RD);
 	Errors ->
 	    Body = jsx:encode([{<<"formErrors">>, Errors}]),

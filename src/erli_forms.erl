@@ -19,7 +19,7 @@
 
 -type value() :: term().
 -type key() :: value().
--type form() :: [{atom(), term()}].
+-type form() :: [{bitstring(), term()}].
 -type validator() :: atom().
 -type error_description() :: string() | bitstring().
 -type validator_fun() :: fun((value()) -> valid | error_description()).
@@ -34,8 +34,8 @@ http_body_to_form(Body) when is_binary(Body) ->
     KVPs = binary:split(Body, <<"&">>, [global, trim]),
     lists:map(fun(KVP) ->
 		      case binary:split(KVP, <<"=">>, [trim]) of
-			  [Key, Value] -> {binary_to_atom(Key, latin1), Value};
-			  [Key] -> {binary_to_atom(Key, latin1), true}
+			  [Key, Value] -> {Key, Value};
+			  [Key] -> {Key, true}
 		      end
 	      end, KVPs);
 http_body_to_form(Body) when is_list(Body) ->
@@ -47,17 +47,33 @@ http_body_to_form(Body) when is_list(Body) ->
 		      end
 	      end, KVPs).
 
-%% @TODO: implement the actual form validation
 -spec validate(form(), [{key(), [validator() | validator_fun()]}]) ->
 		      valid | [validation_error()].
-validate(Form, Validators) ->
-    case lists:map(fun(Validator) ->
-			   check(Form, Validator)
-		   end, Validators) of
-	[] -> valid;
-	ValidationErrors -> ValidationErrors
-    end,
-    valid.
+validate(Form, ValidatorSpecs) ->
+    validate(Form, ValidatorSpecs, []).
+
+validate(Form, [{Key, Validators}|RemSpecs], Issues) ->
+    Value = proplists:get_value(Key, Form),
+    IsRequired = lists:member(required, Validators),
+    case {Value, IsRequired}  of
+	{undefined, true} ->
+	    validate(Form, RemSpecs, [{Key, <<"field is required">>}|Issues]);
+	{undefined, false} ->
+	    validate(Form, RemSpecs, Issues);
+	{Val, _} ->
+	    case run_validators(Val, Validators) of
+		[] ->
+		    validate(Form, RemSpecs, Issues);
+		NewIssues ->
+		    IssuesForKey = {Key, NewIssues},
+		    validate(Form, RemSpecs, [IssuesForKey|Issues])
+	    end
+    end;
+validate(_Form, [], []) ->
+    valid;
+validate(_Form, [], Issues) ->
+    Issues.
+
 
 -spec is_url(bitstring()) -> boolean().
 is_url(PossibleUrl) ->
@@ -72,9 +88,28 @@ is_url(PossibleUrl) ->
 %% Internal Methods
 %%-----------------------------------------------------------
 
--spec check(form(), {key(), [validator() | validator_fun()]}) ->
-		   valid | [validation_error()].
-check(Form, {Key, [Validator|RemainingValidators]}) ->
-    case proplists:lookup(Key, Form) of
-	none -> is_required
-    end.
+run_validators(FieldValue, Validators) ->
+    run_validators(FieldValue, Validators, []).
+
+run_validators(Value, [Validator|RemValidators], Issues) ->
+    UpdatedIssues = check(Value, Validator, Issues),
+    run_validators(Value, RemValidators, UpdatedIssues);
+run_validators(_Value, [], Issues) ->
+    Issues.
+
+check(Value, Validator, Issues) when is_function(Validator) ->
+    case Validator(Value) of
+	valid ->
+	    Issues;
+	Issue ->
+	    [Issue|Issues]
+    end;
+check(Value, is_url, Issues) ->
+    case is_url(Value) of
+	true ->
+	    Issues;
+	false ->
+	    [<<"is not a valid URL">>|Issues]
+    end;
+check(_Value, _, Issues) ->
+    Issues.
