@@ -47,7 +47,14 @@
 %% External Types
 %%-----------------------------------------------------------
 
--type model_name() :: target | path | visit.
--type model() :: #target{} | #path{} | #visit{}.
--type initial_state() :: collection | entity.
--type query_range() :: {pos_integer(), pos_integer()}.
+-type initial_resource_state() :: collection | entity.
+-type range_start() :: pos_integer().
+-type range_end() :: pos_integer().
+-type range() :: {range_start(), range_end()}.
+-type object() :: #target{} | #path{} | #visit{}.
+-type collection() :: list(object()).
+-type object_type() :: target | path | visit.
+-type collection_type() :: targets | paths | visits.
+-type meta_data() :: [{bitstring(), non_neg_integer()}].
+-type proplist() :: [{bitstring(), term()}].
+-type collection_size() :: non_neg_integer().

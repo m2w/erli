@@ -16,6 +16,7 @@
 	 read_multiple/2,
 	 request_removal/1,
 	 count/1]).
+
 %% Utility API
 -export([setup_tables/1]).
 
@@ -25,45 +26,53 @@
 %% Types
 %%-----------------------------------------------------------
 
+-type new_obj() :: object().
+-type existing_obj() :: object().
+-type conflict_data() :: {new_obj(), existing_obj()}.
+-type conflict_error() :: {error, {conflict, conflict_data()}}.
+-type mnesia_error() :: {error, atom()}.
+-type table_name() :: collection_type() | counters.
+
 %%-----------------------------------------------------------
 %% API Methods
 %%-----------------------------------------------------------
 
--spec create(model()) -> model() | {error, atom() | {atom(), {model(), model()}}}.
+-spec create(object()) -> object() | conflict_error() | mnesia_error().
 create(Obj) when is_record(Obj, target) ->
     RecordNumber = mnesia:dirty_update_counter(counters, target, 1),
     LastModified = erli_utils:unix_timestamp(),
     Object = Obj#target{record_number=RecordNumber, last_modified=LastModified},
-    case mnesia:dirty_index_read(target, Object#target.url, url) of
+    case mnesia:dirty_index_read(targets, Object#target.url, url) of
 	[] ->
-	    case generate_id(target) of
+	    case generate_id(targets) of
 		{error, Error} ->
 		    {error, Error};
 		Id ->
 		    UpdatedObject = Object#target{id=Id},
-		    ok = mnesia:dirty_write(target, UpdatedObject),
+		    ok = mnesia:dirty_write(targets, UpdatedObject),
 		    UpdatedObject
 	    end;
 	[ConflictingRecord] ->
-	    {error, {conflict, {Object#target{id= <<"none">>}, ConflictingRecord}}}
+	    {error, {conflict,
+		     {Object#target{id= <<"none">>}, ConflictingRecord}}}
     end;
 create(Obj) when is_record(Obj, path) ->
     RecordNumber = mnesia:dirty_update_counter(counters, path, 1),
     Object = Obj#path{record_number=RecordNumber},
     case Object#path.id of
 	undefined ->
-	    case generate_id(path) of
+	    case generate_id(paths) of
 		{error, Error} ->
 		    {error, Error};
 		Id ->
 		    UpdatedObject = Object#path{id=Id},
-		    ok = mnesia:dirty_write(path, UpdatedObject),
+		    ok = mnesia:dirty_write(paths, UpdatedObject),
 		    UpdatedObject
 	    end;
 	Id ->
 	    case read(path, Id) of
 		{error, not_found} ->
-		    ok = mnesia:dirty_write(path, Object),
+		    ok = mnesia:dirty_write(paths, Object),
 		    Object;
 		{error, Error} ->
 		    {error, Error};
@@ -71,60 +80,64 @@ create(Obj) when is_record(Obj, path) ->
 		    {error, conflict}
 	    end
     end;
-create(Object) when is_record(Object, visit) ->
+create(Obj) when is_record(Obj, visit) ->
     Id = mnesia:dirty_update_counter(counters, visit, 1),
-    UpdatedObject = Object#visit{id=Id},
-    ok = mnesia:dirty_write(visit, UpdatedObject),
+    UpdatedObject = Obj#visit{id=Id},
+    ok = mnesia:dirty_write(visits, UpdatedObject),
     UpdatedObject.
 
--spec read(model_name(), id()) -> model() | {error, atom()}.
-read(target, Id) ->
-    wrap_read(mnesia:dirty_read(target, Id));
-read(path, Id) ->
-    wrap_read(mnesia:dirty_read(path, Id));
-read(visit, Id) ->
-    wrap_read(mnesia:dirty_read(visit, Id)).
 
--spec read_multiple(model_name(), query_range()) -> list().
+-spec read(object_type(), id()) -> object() | mnesia_error().
+read(target, Id) ->
+    wrap_read(mnesia:dirty_read(targets, Id));
+read(path, Id) ->
+    wrap_read(mnesia:dirty_read(paths, Id));
+read(visit, Id) ->
+    wrap_read(mnesia:dirty_read(visits, Id)).
+
+
+-spec read_multiple(collection_type(), range()) -> collection().
 read_multiple(targets, {Start, End}) ->
-    mnesia:dirty_select(target, [{#target{record_number='$1', _='_'},
+    mnesia:dirty_select(targets, [{#target{record_number='$1', _='_'},
 				  [{'>=', '$1', Start},
 				   {'=<', '$1', End}],
 				  ['$_']}]);
 read_multiple(paths, {Start, End}) ->
-    mnesia:dirty_select(path, [{#path{record_number='$1', _='_'},
+    mnesia:dirty_select(paths, [{#path{record_number='$1', _='_'},
 				[{'>=', '$1', Start},
 				 {'=<', '$1', End}],
 				['$_']}]);
 read_multiple(visits, {Start, End}) ->
-    mnesia:dirty_select(visit, [{#visit{id='$1', _='_'},
+    mnesia:dirty_select(visits, [{#visit{id='$1', _='_'},
 				 [{'>=', '$1', Start},
 				  {'=<', '$1', End}],
 				 ['$_']}]).
 
--spec request_removal(#target{}) ->
-			     {request_accepted | target_banned, #target{}}.
+
+-spec request_removal(object()) ->
+			     {request_accepted | target_banned, object()}.
 request_removal(Target) when is_record(Target, target) ->
     CurrentLimit = erli_utils:get_env(flag_limit),
+    LastModified = erli_utils:unix_timestamp(),
+
     case Target#target.flag_count of
 	FC when FC < CurrentLimit ->
-	    LastModified = erli_utils:unix_timestamp(),
 	    UpdatedTarget = Target#target{flag_count=FC+1,
 					  last_modified=LastModified},
-	    mnesia:dirty_write(target, UpdatedTarget),
+	    mnesia:dirty_write(targets, UpdatedTarget),
 	    {request_accepted, UpdatedTarget};
-	FC when FC =:= CurrentLimit ->
-	    LastModified = erli_utils:unix_timestamp(),
+	FC when FC >= CurrentLimit ->
 	    UpdatedTarget = Target#target{last_modified=LastModified,
+					  flag_count=FC+1,
 					  is_banned=true},
 	    ban(UpdatedTarget),
 	    {target_banned, UpdatedTarget}
     end.
 
--spec count(model_name()) -> non_neg_integer().
-count(Model) ->
-    mnesia:table_info(Model, size).
 
+-spec count(collection_type()) -> collection_size().
+count(Collection) ->
+    mnesia:table_info(Collection, size).
 
 %%-----------------------------------------------------------
 %% Utility API
@@ -144,17 +157,21 @@ setup_tables(Nodes) ->
 create_tables(Nodes) ->
     maybe_create_table(counters, [{disc_copies, Nodes},
 				  {attributes, [type, id]}]),
-    maybe_create_table(target, [{disc_copies, Nodes},
+    maybe_create_table(targets, [{disc_copies, Nodes},
+				 {record_name, target},
 				 {index, [url, record_number]},
 				 {attributes, record_info(fields, target)}]),
-    maybe_create_table(path, [{disc_copies, Nodes},
+    maybe_create_table(paths, [{disc_copies, Nodes},
+			       {record_name, path},
 			       {index, [target_id, record_number]},
 			       {attributes, record_info(fields, path)}]),
-    maybe_create_table(visit, [{disc_copies, Nodes},
+    maybe_create_table(visits, [{disc_copies, Nodes},
+				{record_name, visit},
 				{index, [path]},
 				{attributes, record_info(fields, visit)}]).
 
--spec maybe_create_table(atom(), TableSpec :: list()) -> ok.
+
+-spec maybe_create_table(table_name(), list()) -> ok.
 maybe_create_table(TabName, TabSpec) ->
     case mnesia:create_table(TabName, TabSpec) of
 	{atomic, ok} ->
@@ -162,9 +179,9 @@ maybe_create_table(TabName, TabSpec) ->
 	{aborted, {already_exists, _}} ->
 	    error_logger:warning_msg(
 	      "Table ~s already exists, ASSUMING its definition is up-to-date!",
-	      [TabName]),
-	    ok
+	      [TabName])
     end.
+
 
 -spec fix_schema([node()]) -> ok.
 fix_schema(Nodes) ->
@@ -186,7 +203,7 @@ fix_schema(Nodes) ->
     end.
 
 
--spec wrap_read(list() | {aborted, atom()}) -> model() | {error, atom()}.
+-spec wrap_read(list() | {aborted, atom()}) -> object() | mnesia_error().
 wrap_read([]) ->
     {error, not_found};
 wrap_read([Record]) ->
@@ -194,7 +211,8 @@ wrap_read([Record]) ->
 wrap_read({aborted, Error}) ->
     {error, Error}.
 
--spec ban(#target{}) -> {atomic, integer()} | {aborted, atom()}.
+
+-spec ban(object()) -> {atomic, integer()} | mnesia_error().
 ban(Target) when is_record(Target, target) ->
     mnesia:transaction(
       fun() ->
@@ -210,21 +228,15 @@ ban(Target) when is_record(Target, target) ->
 	      length(AffectedPaths)
       end).
 
--spec extract({list(), Continuation::term()} | '$end_of_table') -> list().
-extract(Res) ->
-    extract(Res, []).
 
--spec extract({list(), Continuation::term()} | '$end_of_table', list()) -> list().
-extract('$end_of_table', Acc) ->
-    Acc;
-extract({Objects, Cont}, Acc) ->
-    extract(mnesia:select(Cont), Acc ++ Objects).
-
--spec generate_id(target | path) -> id() | {error, unable_to_generate_id}.
+-spec generate_id(targets | paths) -> id() | {error, unable_to_generate_id}.
 generate_id(Table) ->
     generate_id(Table, 0).
 
--spec generate_id(target | path, integer()) -> id() | {error, unable_to_generate_id}.
+
+-spec generate_id(targets | paths, integer()) ->
+			 id() |
+			 {error, unable_to_generate_id}.
 generate_id(Table, Attempts) when Attempts < 20 ->
     Id = re:replace(
 	   base64:encode(
@@ -232,10 +244,8 @@ generate_id(Table, Attempts) when Attempts < 20 ->
 	   "[\/+=]", "",
 	   [global, {return, binary}]),
     case mnesia:dirty_read(Table, Id) of
-	[] ->
-	    Id;
-	_Record ->
-	    generate_id(Table, Attempts+1)
+	[] -> Id;
+	_Record -> generate_id(Table, Attempts+1)
     end;
 generate_id(_Table, _Attempts) ->
     {error, unable_to_generate_id}.

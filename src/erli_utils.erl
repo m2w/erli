@@ -25,16 +25,16 @@
 %%-----------------------------------------------------------
 %% Types
 %%-----------------------------------------------------------
+
 -type file_path() :: string().
 -type maybe_int() :: [] | integer().
--type collection_type() :: targets | paths | visits.
+-type etag() :: string().
 
 %%-----------------------------------------------------------
 %% API Methods
 %%-----------------------------------------------------------
 
--spec build_content_range_header(collection_type(), [{bitstring(), integer()}]) ->
-					string().
+-spec build_content_range_header(collection_type(), meta_data()) -> string().
 build_content_range_header(Type, Meta) ->
     ColSize = proplists:get_value(<<"totalCollectionSize">>, Meta),
     End = proplists:get_value(<<"rangeEnd">>, Meta),
@@ -42,7 +42,8 @@ build_content_range_header(Type, Meta) ->
     atom_to_list(Type) ++ " " ++ integer_to_list(Start) ++ "-" ++
 	integer_to_list(End) ++ "/" ++ integer_to_list(ColSize).
 
--spec priv_dir(atom()) -> file_path().
+
+-spec priv_dir(module()) -> file_path().
 priv_dir(Mod) ->
     case code:priv_dir(Mod) of
         {error, bad_name} ->
@@ -51,6 +52,7 @@ priv_dir(Mod) ->
         PrivDir ->
             PrivDir
     end.
+
 
 -spec get_env(atom()) -> undefined | term().
 get_env(Key) ->
@@ -61,6 +63,7 @@ get_env(Key) ->
 	    Val
     end.
 
+
 -spec add_json_response(#wm_reqdata{}, bitstring()) -> #wm_reqdata{}.
 add_json_response(RD, Body) ->
     wrq:set_resp_body(Body,
@@ -68,9 +71,9 @@ add_json_response(RD, Body) ->
 					  "application/json", RD)).
 
 
--spec meta_proplist(model_name(), query_range()) -> [{bitstring(), term()}].
-meta_proplist(Model, {Start, End}) ->
-    Total = erli_storage:count(Model),
+-spec meta_proplist(collection_type(), range()) -> meta_data().
+meta_proplist(CollectionType, {Start, End}) ->
+    Total = erli_storage:count(CollectionType),
     M = [{<<"totalCollectionSize">>, Total},
 	 {<<"objectCount">>, End-Start},
 	 {<<"rangeStart">>, Start},
@@ -86,17 +89,16 @@ meta_proplist(Model, {Start, End}) ->
        true ->
 	    M
     end.
-%% END USELESS BOILERPLATE
 
--spec to_proplist(model()) -> [{bitstring(), term()}].
+
+-spec to_proplist(object()) -> proplist().
 to_proplist(#target{id=Id, record_number=_RN, url=Url, last_modified=LM,
 		    is_banned=B, flag_count=FC, screenshot_id=SC}) ->
-    Thumbnail = case SC of
-		    undefined ->
-			get_env(thumbnail_placeholder_id);
-		    Id ->
-			Id
-		end,
+    Thumbnail =
+	case SC of
+	    undefined -> get_env(thumbnail_placeholder_id);
+	    Id -> Id
+	end,
     [{<<"id">>, Id},
      {<<"href">>, <<"/api/targets/", Id/bitstring>>},
      {<<"bannedStatus">>, B},
@@ -106,16 +108,17 @@ to_proplist(#target{id=Id, record_number=_RN, url=Url, last_modified=LM,
       [{<<"targetUrl">>, Url},
        {<<"thumbnail">>, <<"/static/thumbnails/", Thumbnail/bitstring>>}]}];
 to_proplist(Collection) when is_list(Collection) ->
-    lists:foldl(fun(Obj, Acc) ->
-			to_proplist(Obj) ++ Acc
+    lists:foldl(fun(Obj, Acc) -> to_proplist(Obj) ++ Acc
 		end, [], Collection).
 
--spec generate_etag(model() | {list(), list()}) -> string().
-generate_etag(Record) when is_record(Record, target) ->
-    mochihex:to_hex(erlang:md5(jsx:encode(to_proplist(Record))));
-generate_etag({Meta, Objects}) ->
+
+-spec generate_etag(object() | {meta_data(), collection()}) -> etag().
+generate_etag(Object) when is_record(Object, target) ->
+    mochihex:to_hex(erlang:md5(jsx:encode(to_proplist(Object))));
+generate_etag({Meta, Collection}) ->
     LMS = lists:sum(
-	    lists:map(fun(O) -> O#target.last_modified end, Objects)),
+	    lists:map(fun(Obj) -> Obj#target.last_modified end,
+		      Collection)),
     MetaMD5 = erlang:md5(jsx:encode(Meta)),
     mochihex:to_hex(<<MetaMD5/binary, LMS/integer>>).
 
@@ -126,36 +129,31 @@ unix_timestamp() ->
     UnixEpoch = calendar:datetime_to_gregorian_seconds({{1970,1,1},{0,0,0}}),
     UTC - UnixEpoch.
 
--spec parse_range_header(#wm_reqdata{}, model_name()) ->
-				query_range() |
+
+-spec parse_range_header(#wm_reqdata{}, collection_type()) ->
+				range() |
 				{error, invalid_range}.
-parse_range_header(RD, Model) ->
+parse_range_header(RD, CollectionType) ->
     Default = get_env(default_collection_offset),
     RH = wrq:get_req_header("Range", RD),
     case RH of
-	undefined ->
-	    {0, Default};
-	Val ->
-	    parse_range(string:strip(Val), Model)
+	undefined -> {0, Default};
+	Val -> parse_range(string:strip(Val), CollectionType)
     end.
 
 %%-----------------------------------------------------------
 %% Internal Methods
 %%-----------------------------------------------------------
 
--spec parse_range(string(), targets | visits | paths) ->
-			 query_range() |
+-spec parse_range(string(), collection_type()) ->
+			 range() |
 			 {error, invalid_range}.
-parse_range(HeaderValue, Model) ->
-    M = atom_to_list(Model),
+parse_range(HeaderValue, CollectionType) ->
+    M = atom_to_list(CollectionType),
     case re:run(HeaderValue, "(\\w+)=(\\d*)-(\\d*)",
 		[{capture, all_but_first, list}]) of
 	{match, [Unit, X, Y]} when Unit =:= M ->
-	    Max = case Model of
-		      targets -> erli_storage:count(target);
-		      visits -> erli_storage:count(visit);
-		      paths -> erli_storage:count(path)
-		  end,
+	    Max = erli_storage:count(CollectionType),
 	    MaxOffset = erli_utils:get_env(max_collection_offset),
 	    extract_range(to_int(X), to_int(Y), MaxOffset, Max);
 	_ -> % wrong unit specified or otherwise invalid range spec
@@ -172,14 +170,15 @@ to_int(String) ->
     end.
 
 -spec extract_range(maybe_int(), maybe_int(), pos_integer(), pos_integer()) ->
-			   query_range() |
+			   range() |
 			   {error, invalid_range}.
 extract_range([], [], _, _) -> % unit=-
     {error, invalid_range};
 extract_range([], Y, MaxOffset, Max)
   when Max-Y =< MaxOffset andalso Y =< Max -> % unit=-Y
     {Y, Max-Y};
-extract_range(X, [], MaxOffset, Max) when X+MaxOffset =< Max -> % unit=X-
+extract_range(X, [], MaxOffset, Max)
+  when X+MaxOffset =< Max -> % unit=X-
     {X, X+MaxOffset};
 extract_range(X, [], _, Max) -> % unit=X-
     {X, Max};

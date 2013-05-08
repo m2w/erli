@@ -2,9 +2,6 @@
 %%% @author Moritz Windelen
 %%% @version 0.1a
 %%% @doc A modular form validation library.
-%%% Forms are validated as proplists, with validator functions
-%%% of the type {key, [validators]}.
-%%% Comes with a number of common validators built-in.
 %%% @end
 %%%==========================================================
 
@@ -16,6 +13,10 @@
 	 is_url/1]).
 
 -export_type([validator_fun/0, validator/0]).
+
+%%-----------------------------------------------------------
+%% Types
+%%-----------------------------------------------------------
 
 -type value() :: term().
 -type key() :: value().
@@ -43,7 +44,7 @@ http_body_to_form(Body) when is_list(Body) ->
     lists:map(fun(KVP) ->
 		      case re:split(KVP, <<"=">>, [trim]) of
 			  [Key, Value] -> {Key, Value};
-			  [Key] -> {binary_to_atom(Key, latin1), true}
+			  [Key] -> {Key, true}
 		      end
 	      end, KVPs).
 
