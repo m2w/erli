@@ -1,56 +1,57 @@
-%% @author Moritz Windelen <moritz@tibidat.com>
-% @copyright 2012-2013 Moritz Windelen.
-%% @doc erli startup code
+%%%==========================================================
+%%% @author Moritz Windelen
+%%% @version 0.1a
+%%% @doc The erli backend startup code.
+%%% @end
+%%%==========================================================
 
 -module(erli).
--author('Moritz Windelen <moritz@tibidat.com>').
 
-%% API
--export([ensure_deps_started/0, start/0, stop_deps/0]).
+-export([start/0,
+	 start_link/0,
+	 stop/0]).
 
-%%%===================================================================
-%%% API functions
-%%%===================================================================
+%%-----------------------------------------------------------
+%% API Methods
+%%-----------------------------------------------------------
 
-%% @doc Starts all dependencies and then starts erli.
--spec start() -> ok | {error, Reason :: term()}.
-start() ->
-    ensure_deps_started(),
-    application:start(erli).
-
-%% @doc Starts all applications that erli depends upon
--spec ensure_deps_started() -> ok.
-ensure_deps_started() ->
-    ensure_started(sasl),
+%% @doc Start the backend for inclusion in a supervisor tree
+-spec start_link() -> {ok, pid()}.
+start_link() ->
     ensure_started(inets),
     ensure_started(crypto),
-    ensure_started(mnesia),
     ensure_started(mochiweb),
     ensure_started(webmachine),
-    ensure_started(egeoip).
+    ensure_started(mnesia),
+    erli_sup:start_link().
 
-%% @doc Stops all applications that erli depends on
--spec stop_deps() -> ok | {error, Reason :: term()}.
-stop_deps() ->
-    application:stop(egeoip),
+-spec start() -> ok.
+start() ->
+    ensure_started(inets),
+    ensure_started(crypto),
+    ensure_started(mochiweb),
+    ensure_started(webmachine),
+    ensure_started(mnesia),
+    application:start(erli).
+
+-spec stop() -> ok.
+stop() ->
+    Res = application:stop(erli),
+    application:stop(mnesia),
     application:stop(webmachine),
     application:stop(mochiweb),
-    application:stop(mnesia),
     application:stop(crypto),
-    application:stop(inets).
+    application:stop(inets),
+    Res.
 
-%%%===================================================================
-%%% Internal functions
-%%%===================================================================
+%%-----------------------------------------------------------
+%% Internal Methods
+%%-----------------------------------------------------------
 
-%% @private
-%% @doc Attempts to start the application and returns `ok', also returns
-%% `ok' if the application is already running.
--spec ensure_started(App :: atom()) -> ok.
 ensure_started(App) ->
     case application:start(App) of
-	ok ->
-	    ok;
+        ok ->
+            ok;
 	{error, {already_started, App}} ->
-	    ok
+            ok
     end.
