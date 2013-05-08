@@ -29,13 +29,13 @@
 %% API Methods
 %%-----------------------------------------------------------
 
--spec create(model()) -> model() | {error, bitstring()}.
+-spec create(model()) -> model() | {error, atom() | {atom(), model()}}.
 create(Obj) when is_record(Obj, target) ->
     RecordNumber = mnesia:dirty_update_counter(counters, target, 1),
     LastModified = erli_utils:unix_timestamp(),
     Object = Obj#target{record_number=RecordNumber, last_modified=LastModified},
-    case Object#target.id of
-	undefined ->
+    case mnesia:dirty_index_read(target, Object#target.url, url) of
+	[] ->
 	    case generate_id(target) of
 		{error, Error} ->
 		    {error, Error};
@@ -44,16 +44,8 @@ create(Obj) when is_record(Obj, target) ->
 		    ok = mnesia:dirty_write(target, UpdatedObject),
 		    UpdatedObject
 	    end;
-	Id ->
-	    case read(target, Id) of
-		{error, not_found} ->
-		    ok = mnesia:dirty_write(target, Object),
-		    Object;
-		{error, Error} ->
-		    {error, Error};
-		_Record ->
-		    {error, conflict}
-	    end
+	[Record] ->
+	    {error, {conflict, Record}}
     end;
 create(Obj) when is_record(Obj, path) ->
     RecordNumber = mnesia:dirty_update_counter(counters, path, 1),
@@ -125,7 +117,7 @@ request_removal(Target) when is_record(Target, target) ->
 	    LastModified = erli_utils:unix_timestamp(),
 	    UpdatedTarget = Target#target{last_modified=LastModified,
 					  is_banned=true},
-	    ban_affected_paths(UpdatedTarget),
+	    ban(UpdatedTarget),
 	    {target_banned, UpdatedTarget}
     end.
 
@@ -153,7 +145,7 @@ create_tables(Nodes) ->
     maybe_create_table(counters, [{disc_copies, Nodes},
 				  {attributes, [type, id]}]),
     maybe_create_table(target, [{disc_copies, Nodes},
-				 {index, [record_number]},
+				 {index, [url, record_number]},
 				 {attributes, record_info(fields, target)}]),
     maybe_create_table(path, [{disc_copies, Nodes},
 			       {index, [target_id, record_number]},
@@ -202,8 +194,8 @@ wrap_read([Record]) ->
 wrap_read({aborted, Error}) ->
     {error, Error}.
 
--spec ban_affected_paths(#target{}) -> {atomic, integer()} | {aborted, atom()}.
-ban_affected_paths(Target) when is_record(Target, target) ->
+-spec ban(#target{}) -> {atomic, integer()} | {aborted, atom()}.
+ban(Target) when is_record(Target, target) ->
     mnesia:transaction(
       fun() ->
 	      AffectedPaths =

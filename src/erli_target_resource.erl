@@ -129,10 +129,14 @@ handle_post(Form, RD, Ctx) ->
     end.
 
 -spec maybe_store(#target{}, #wm_reqdata{}) ->
-			 {true | {halt, 422}, #wm_reqdata{}, term()}.
+			 {false | true | {halt, 422}, #wm_reqdata{}, term()}.
 maybe_store(Target, RD) ->
-    %% @TODO: rethink the use of the 422 and the body contents when storage fails
     case erli_storage:create(Target) of
+	{error, {conflict, OtherTarget}} ->
+	    Body = jsx:encode([{<<"posts">>,
+				erli_utils:to_proplist(OtherTarget)}]),
+	    NRD = erli_utils:add_json_response(RD, Body),
+	    {{halt, 409}, NRD, {Target, OtherTarget}};
 	{error, Error} ->
 	    Body = jsx:encode([{<<"formErrors">>,
 				atom_to_list(Error)}]),
