@@ -95,9 +95,13 @@ as_json(RD, {Meta, Objects}=Ctx) ->
 process_post(RD, Ctx) ->
     case mochiweb_util:parse_header(wrq:get_req_header("Content-Type", RD)) of
 	{"application/x-www-form-urlencoded", _} ->
-	    handle_post(url_form, RD, Ctx);
+	    Form = erli_forms:http_body_to_form(wrq:req_body(RD)),
+	    handle_post(Form, RD, Ctx);
 	{"application/json", _} ->
-	    handle_post(json, RD, Ctx)
+	    Form = jsx:decode(wrq:req_body(RD)),
+	    handle_post(Form, RD, Ctx);
+	_ ->
+	    {{halt, 415}, RD, Ctx}
     end.
 
 delete_resource(RD, Record) when is_record(Record, target) ->
@@ -111,30 +115,15 @@ delete_completed(RD, Record) when is_record(Record, target) ->
 %% Internal Methods
 %%----------------------------------------------------------
 
--spec handle_post(url_form | json, #wm_reqdata{}, term()) ->
+-spec handle_post([{bitstring(), term()}], #wm_reqdata{}, term()) ->
 			 {true | {halt, 422}, #wm_reqdata{}, term()}.
-handle_post(url_form, RD, Ctx) ->
-    Form = erli_forms:http_body_to_form(wrq:req_body(RD)),
+handle_post(Form, RD, Ctx) ->
     case erli_forms:validate(Form, [{target_url, [required, is_url]}]) of
 	valid ->
 	    Target = #target{url=proplists:get_value(target_url, Form)},
 	    maybe_store(Target, RD);
 	Errors ->
 	    Body = jsx:encode([{<<"formErrors">>, Errors}]),
-	    NRD = erli_utils:add_json_response(RD, Body),
-	    {{halt, 422}, NRD, Ctx}
-    end;
-handle_post(json, RD, Ctx) ->
-    FormData = jsx:decode(wrq:req_body(RD)),
-    TargetUrl = proplists:get_value(<<"target_url">>, FormData),
-    case erli_forms:is_url(TargetUrl) of
-	true ->
-	    Target = #target{url=TargetUrl},
-	    maybe_store(Target, RD);
-	false ->
-	    Body = jsx:encode([{<<"formErrors">>,
-				[{<<"target_url">>,
-				  <<"is not a valid URL">>}]}]),
 	    NRD = erli_utils:add_json_response(RD, Body),
 	    {{halt, 422}, NRD, Ctx}
     end.
