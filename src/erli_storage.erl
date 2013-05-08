@@ -29,7 +29,7 @@
 %% API Methods
 %%-----------------------------------------------------------
 
--spec create(model()) -> model() | {error, atom() | {atom(), model()}}.
+-spec create(model()) -> model() | {error, atom() | {atom(), {model(), model()}}}.
 create(Obj) when is_record(Obj, target) ->
     RecordNumber = mnesia:dirty_update_counter(counters, target, 1),
     LastModified = erli_utils:unix_timestamp(),
@@ -44,8 +44,8 @@ create(Obj) when is_record(Obj, target) ->
 		    ok = mnesia:dirty_write(target, UpdatedObject),
 		    UpdatedObject
 	    end;
-	[Record] ->
-	    {error, {conflict, Record}}
+	[ConflictingRecord] ->
+	    {error, {conflict, {Object#target{id= <<"none">>}, ConflictingRecord}}}
     end;
 create(Obj) when is_record(Obj, path) ->
     RecordNumber = mnesia:dirty_update_counter(counters, path, 1),
