@@ -151,7 +151,11 @@ parse_range(HeaderValue, Model) ->
     case re:run(HeaderValue, "(\\w+)=(\\d*)-(\\d*)",
 		[{capture, all_but_first, list}]) of
 	{match, [Unit, X, Y]} when Unit =:= M ->
-	    Max = erli_storage:count(Model),
+	    Max = case Model of
+		      targets -> erli_storage:count(target);
+		      visits -> erli_storage:count(visit);
+		      paths -> erli_storage:count(path)
+		  end,
 	    MaxOffset = erli_utils:get_env(max_collection_offset),
 	    extract_range(to_int(X), to_int(Y), MaxOffset, Max);
 	_ -> % wrong unit specified or otherwise invalid range spec
@@ -172,7 +176,8 @@ to_int(String) ->
 			   {error, invalid_range}.
 extract_range([], [], _, _) -> % unit=-
     {error, invalid_range};
-extract_range([], Y, MaxOffset, Max) when Max-Y =< MaxOffset -> % unit=-Y
+extract_range([], Y, MaxOffset, Max)
+  when Max-Y =< MaxOffset andalso Y =< Max -> % unit=-Y
     {Y, Max-Y};
 extract_range(X, [], MaxOffset, Max) when X+MaxOffset =< Max -> % unit=X-
     {X, X+MaxOffset};
