@@ -83,10 +83,10 @@ content_types_provided(RD, Ctx) ->
     {[{"application/json", as_json}], RD, Ctx}.
 
 as_json(RD, Record) when is_record(Record, target) ->
-    Data = jsx:encode([{<<"posts">>, erli_utils:to_proplist(Record)}]),
+    Data = jsx:encode([{<<"targets">>, erli_utils:to_proplist(Record)}]),
     {Data, RD, Record};
 as_json(RD, {Meta, Objects}=Ctx) ->
-    Data = jsx:encode([{<<"posts">>, erli_utils:to_proplist(Objects)},
+    Data = jsx:encode([{<<"targets">>, erli_utils:to_proplist(Objects)},
 		       {<<"meta">>, Meta}]),
     ContentRangeHeader = erli_utils:build_content_range_header(targets, Meta),
     NRD = wrq:set_resp_header("Content-Range", ContentRangeHeader, RD),
@@ -132,18 +132,21 @@ handle_post(Form, RD, Ctx) ->
 			 {false | true | {halt, 422}, #wm_reqdata{}, term()}.
 maybe_store(Target, RD) ->
     case erli_storage:create(Target) of
-	{error, {conflict, OtherTarget}} ->
-	    Body = jsx:encode([{<<"posts">>,
-				erli_utils:to_proplist(OtherTarget)}]),
+	{error, {conflict, {T, OtherTarget}}} ->
+	    Body = jsx:encode([{<<"conflictingEntity">>,
+				erli_utils:to_proplist(OtherTarget)},
+			       {<<"submittedEntity">>,
+				erli_utils:to_proplist(T)}]),
 	    NRD = erli_utils:add_json_response(RD, Body),
 	    {{halt, 409}, NRD, {Target, OtherTarget}};
 	{error, Error} ->
-	    Body = jsx:encode([{<<"formErrors">>,
+	    %% @TODO: improve the error handling/format
+	    Body = jsx:encode([{<<"errors">>,
 				atom_to_list(Error)}]),
 	    NRD = erli_utils:add_json_response(RD, Body),
 	    {{halt, 422}, NRD, Target};
 	SavedTarget ->
-	    Body = jsx:encode([{<<"posts">>,
+	    Body = jsx:encode([{<<"targets">>,
 				erli_utils:to_proplist(SavedTarget)}]),
 	    NRD = erli_utils:add_json_response(RD, Body),
 	    {true, NRD, Target}
