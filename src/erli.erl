@@ -32,6 +32,7 @@ start() ->
     ensure_started(mochiweb),
     ensure_started(webmachine),
     ensure_started(mnesia),
+    erli_storage:setup_tables([node()]),
     application:start(erli).
 
 -spec stop() -> ok.

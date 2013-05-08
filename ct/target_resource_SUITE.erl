@@ -23,7 +23,6 @@ init_per_suite(Config) ->
     application:set_env(mnesia, dir, Priv),
     application:set_env(webmachine, dispatch_dir, DataDir),
     erli:start(),
-    erli_storage:setup_tables([node()]),
 
     {ok, DefaultOffset} = application:get_env(erli, default_collection_offset),
     {ok, MaxOffset} = application:get_env(erli, max_collection_offset),
