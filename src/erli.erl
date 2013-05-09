@@ -23,6 +23,8 @@ start_link() ->
     ensure_started(mochiweb),
     ensure_started(webmachine),
     ensure_started(mnesia),
+    ensure_started(egeoip),
+    erli_storage:setup_tables([node()]),
     erli_sup:start_link().
 
 -spec start() -> ok.
@@ -32,12 +34,14 @@ start() ->
     ensure_started(mochiweb),
     ensure_started(webmachine),
     ensure_started(mnesia),
+    ensure_started(egeoip),
     erli_storage:setup_tables([node()]),
     application:start(erli).
 
 -spec stop() -> ok.
 stop() ->
     Res = application:stop(erli),
+    application:stop(egeoip),
     application:stop(mnesia),
     application:stop(webmachine),
     application:stop(mochiweb),
