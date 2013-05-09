@@ -20,6 +20,8 @@
 %% Utility API
 -export([setup_tables/1]).
 
+-export_types([conflict_data/0]).
+
 -include("models.hrl").
 
 %%-----------------------------------------------------------

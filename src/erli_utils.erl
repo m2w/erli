@@ -113,14 +113,18 @@ to_proplist(Collection) when is_list(Collection) ->
 
 
 -spec generate_etag(object() | {meta_data(), collection()}) -> etag().
-generate_etag(Object) when is_record(Object, target) ->
+generate_etag({ObjectType, Object}) when ?is_object(ObjectType) ->
     mochihex:to_hex(erlang:md5(jsx:encode(to_proplist(Object))));
-generate_etag({Meta, Collection}) ->
+generate_etag({targets, {Meta, Collection}}) ->
     LMS = lists:sum(
 	    lists:map(fun(Obj) -> Obj#target.last_modified end,
 		      Collection)),
     MetaMD5 = erlang:md5(jsx:encode(Meta)),
-    mochihex:to_hex(<<MetaMD5/binary, LMS/integer>>).
+    mochihex:to_hex(<<MetaMD5/binary, LMS/integer>>);
+generate_etag({paths, {Meta, Collection}}) ->
+    Banned = length([X || X <- Collection, X#path.is_banned]),
+    MetaMD5 = erlang:md5(jsx:encode(Meta)),
+    mochihex:to_hex(<<MetaMD5/binary, Banned/integer>>).
 
 
 -spec unix_timestamp() -> pos_integer().

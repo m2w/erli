@@ -47,7 +47,6 @@
 %% External Types
 %%-----------------------------------------------------------
 
--type initial_resource_state() :: collection | entity.
 -type range_start() :: pos_integer().
 -type range_end() :: pos_integer().
 -type range() :: {range_start(), range_end()}.
@@ -58,3 +57,11 @@
 -type meta_data() :: [{bitstring(), non_neg_integer()}].
 -type proplist() :: [{bitstring(), term()}].
 -type collection_size() :: non_neg_integer().
+-type collection_data() :: {meta_data(), collection()}.
+
+%%-----------------------------------------------------------
+%% Macros
+%%-----------------------------------------------------------
+
+-define(is_collection(X), (X =:= targets orelse (X =:= paths))).
+-define(is_object(X), (X =:= target orelse X =:= path)).
