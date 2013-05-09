@@ -112,5 +112,13 @@ check(Value, is_url, Issues) ->
 	false ->
 	    [<<"is not a valid URL">>|Issues]
     end;
+check(Value, is_target_id, Issues) ->
+    case erli_storage:read(target, Value) of
+	{error, _Error} ->
+	    [<<"target record with id '",
+	       Value/bitstring, "' does not exist">>|Issues];
+	_T ->
+	    Issues
+    end;
 check(_Value, _, Issues) ->
     Issues.

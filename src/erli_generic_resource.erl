@@ -162,7 +162,8 @@ handle_post(Form, RD, {targets, {_Meta, _Collection}}=Ctx) ->
 	    {{halt, 422}, NRD, Ctx}
     end;
 handle_post(Form, RD, {paths, {_Meta, _Collection}}=Ctx) ->
-    case erli_forms:validate(Form, [{<<"target_id">>, [required]}]) of
+    case erli_forms:validate(Form, [{<<"target_id">>,
+				     [required, is_target_id]}]) of
 	valid ->
 	    Path = #path{target_id=proplists:get_value(<<"target_id">>, Form)},
 	    maybe_store(paths, Path, RD, Ctx);
