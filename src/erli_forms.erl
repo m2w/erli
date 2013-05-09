@@ -120,5 +120,12 @@ check(Value, is_target_id, Issues) ->
 	_T ->
 	    Issues
     end;
+check(Value, is_id, Issues) ->
+    case re:run(Value, "^([\\w_\\-]*(%\\d{2})*)+$", [{capture, none}, caseless]) of
+	match -> Issues;
+	nomatch ->
+	    [<<Value/bitstring,
+	       " is not a valid id, only urlencoded values are accepted">>|Issues]
+    end;
 check(_Value, _, Issues) ->
     Issues.

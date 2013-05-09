@@ -163,9 +163,10 @@ handle_post(Form, RD, {targets, {_Meta, _Collection}}=Ctx) ->
     end;
 handle_post(Form, RD, {paths, {_Meta, _Collection}}=Ctx) ->
     case erli_forms:validate(Form, [{<<"target_id">>,
-				     [required, is_target_id]}]) of
+				     [required, is_target_id]},
+				    {<<"custom_id">>, [is_id]}]) of
 	valid ->
-	    Path = #path{target_id=proplists:get_value(<<"target_id">>, Form)},
+	    Path = build_path(Form),
 	    maybe_store(paths, Path, RD, Ctx);
 	Errors ->
 	    Body = jsx:encode([{<<"formErrors">>, Errors}]),
@@ -173,6 +174,18 @@ handle_post(Form, RD, {paths, {_Meta, _Collection}}=Ctx) ->
 	    {{halt, 422}, NRD, Ctx}
     end.
 
+-spec build_path(proplist()) -> #path{}.
+build_path(Form) ->
+    TargetId = proplists:get_value(<<"target_id">>, Form),
+    case proplists:get_value(<<"custom_id">>, Form) of
+	undefined ->
+	    #path{target_id=TargetId};
+	Id ->
+	    #path{target_id=TargetId, id=Id}
+    end.
+
+-spec maybe_store(collection_type(), object(), #wm_reqdata{}, term()) ->
+			 {true | {halt, 409 | 422}, #wm_reqdata{}, term()}.
 maybe_store(CollectionType, Record, RD, Ctx) ->
     case erli_storage:create(Record) of
 	{error, {conflict, {SubmittedRecord, ExistingRecord}}} ->
