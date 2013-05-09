@@ -58,7 +58,7 @@ create(Obj) when is_record(Obj, target) ->
 	    {error, {conflict,
 		     {Object#target{id= <<"none">>}, ConflictingRecord}}}
     end;
-create(Obj) when is_record(Obj, path) -> % business logic responsible for creating target
+create(Obj) when is_record(Obj, path) ->
     RecordNumber = mnesia:dirty_update_counter(counters, path, 1),
     Object = Obj#path{record_number=RecordNumber},
     case read(target, Object#path.target_id) of
