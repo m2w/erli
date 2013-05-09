@@ -178,7 +178,7 @@ create_tables(Nodes) ->
 			       {attributes, record_info(fields, path)}]),
     maybe_create_table(visits, [{disc_copies, Nodes},
 				{record_name, visit},
-				{index, [path]},
+				{index, [path_id]},
 				{attributes, record_info(fields, visit)}]).
 
 

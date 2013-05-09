@@ -1,8 +1,8 @@
 %%%==========================================================
 %%% @author Moritz Windelen
 %%% @version 0.1a
-%%% @doc A generic resource used to represent target and path
-%%% objects.
+%%% @doc A generic resource used to represent visit, target
+%%% and path objects.
 %%% @end
 %%%==========================================================
 
@@ -42,6 +42,8 @@ init([InitialState]) ->
 
 allowed_methods(RD, Ctx) when ?is_collection(Ctx) ->
     {['GET', 'POST', 'HEAD', 'OPTIONS'], RD, Ctx};
+allowed_methods(RD, visit=Ctx) ->
+    {['GET', 'HEAD', 'OPTIONS'], RD, Ctx};
 allowed_methods(RD, Ctx) ->
     {['GET', 'DELETE', 'HEAD', 'OPTIONS'], RD, Ctx}.
 
@@ -81,7 +83,9 @@ resource_exists(RD, ObjectType) ->
 	Obj when is_record(Obj, target) ->
 	    {not Obj#target.is_banned, RD, {ObjectType, Obj}};
 	Obj when is_record(Obj, path) ->
-	    {not Obj#path.is_banned, RD, {ObjectType, Obj}}
+	    {not Obj#path.is_banned, RD, {ObjectType, Obj}};
+	Obj ->
+	    {true, RD, {ObjectType, Obj}}
     end.
 
 
@@ -166,23 +170,42 @@ handle_post(Form, RD, {paths, {_Meta, _Collection}}=Ctx) ->
 				     [required, is_target_id]},
 				    {<<"custom_id">>, [is_id]}]) of
 	valid ->
-	    Path = build_path(Form),
+	    Path = build_record(path, Form),
 	    maybe_store(paths, Path, RD, Ctx);
+	Errors ->
+	    Body = jsx:encode([{<<"formErrors">>, Errors}]),
+	    NRD = erli_utils:add_json_response(RD, Body),
+	    {{halt, 422}, NRD, Ctx}
+    end;
+handle_post(Form, RD, {visits, {_Meta, _Collection}}=Ctx) ->
+    case erli_forms:validate(Form, [{<<"path_id">>,
+				     [required, is_path_id]}]) of
+	valid ->
+	    Visit = build_record(visit,
+				 [{<<"ip">>, list_to_binary(wrq:peer(RD))}|Form]),
+	    maybe_store(visits, Visit, RD, Ctx);
 	Errors ->
 	    Body = jsx:encode([{<<"formErrors">>, Errors}]),
 	    NRD = erli_utils:add_json_response(RD, Body),
 	    {{halt, 422}, NRD, Ctx}
     end.
 
--spec build_path(proplist()) -> #path{}.
-build_path(Form) ->
+
+-spec build_record(object_type(), proplist()) -> object().
+build_record(path, Form) ->
     TargetId = proplists:get_value(<<"target_id">>, Form),
     case proplists:get_value(<<"custom_id">>, Form) of
 	undefined ->
 	    #path{target_id=TargetId};
 	Id ->
 	    #path{target_id=TargetId, id=Id}
-    end.
+    end;
+build_record(visit, Form) ->
+    PathId = proplists:get_value(<<"path_id">>, Form),
+    Ip = proplists:get_value(<<"ip">>, Form),
+    #visit{path_id=PathId, peer=Ip}.
+
+
 
 -spec maybe_store(collection_type(), object(), #wm_reqdata{}, term()) ->
 			 {true | {halt, 409 | 422}, #wm_reqdata{}, term()}.

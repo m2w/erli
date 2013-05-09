@@ -39,7 +39,7 @@
 %% @doc Represents a single visit to a shortened URL.
 %% Includes links to all related data.
 -record(visit, {id :: incremental_id(),
-		path :: id(),
+		path_id :: id(),
 		peer,
 		time :: unix_timestamp()}).
 
@@ -63,5 +63,5 @@
 %% Macros
 %%-----------------------------------------------------------
 
--define(is_collection(X), (X =:= targets orelse (X =:= paths))).
--define(is_object(X), (X =:= target orelse X =:= path)).
+-define(is_collection(X), (X =:= targets orelse X =:= paths orelse X =:= visits)).
+-define(is_object(X), (X =:= target orelse X =:= path orelse X =:= visit)).
