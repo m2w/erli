@@ -118,7 +118,7 @@ to_proplist(Collection) when is_list(Collection) ->
 		end, [], Collection).
 
 
--spec generate_etag(object() | {meta_data(), collection()}) -> etag().
+-spec generate_etag({object_type(), object()} | {collection_type(), {meta_data(), collection()}}) -> etag().
 generate_etag({ObjectType, Object}) when ?is_object(ObjectType) ->
     mochihex:to_hex(erlang:md5(jsx:encode(to_proplist(Object))));
 generate_etag({targets, {Meta, Collection}}) ->
