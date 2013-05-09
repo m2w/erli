@@ -59,9 +59,10 @@ malformed_request(RD, Ctx) ->
     {false, RD, Ctx}.
 
 
-options(RD, {Ctx, _}) ->
+options(RD, {CollectionType, _Range}=Ctx) ->
+    ColType = atom_to_list(CollectionType),
     {[{"Content-Length", "0"},
-      {"Accept-Ranges", "targets"},
+      {"Accept-Ranges", ColType},
       {"Allow", "GET, POST, HEAD, OPTIONS"}], RD, Ctx};
 options(RD, Ctx) ->
     {[{"Content-Length", "0"},
