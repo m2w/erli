@@ -60,15 +60,16 @@ all() ->
      delete_entity].
 
 idempotent_calls_to_collection(Config) ->
-    ok = test_utils:generate_targets(55),
+    test_utils:generate_targets(55),
 
     {ok, {{"HTTP/1.1", 200, _ReasonPhrase}, _Headers, Body}} =
 	build_request(get, Config),
     B = jsx:decode(list_to_binary(Body)),
-    DefaultOffset = length(proplists:get_value(<<"targets">>, B)),
+    Default = ?config(default_offset, Config),
+    Default = length(proplists:get_value(<<"targets">>, B)),
     Meta = proplists:get_value(<<"meta">>, B),
     validate_meta(55, 25, 0,
-		  ?config(default_offset, Config),
+		  Default,
 		  ?config(max_offset, Config), Meta),
 
     {ok, {{"HTTP/1.1", 200, _ReasonPhrase}, _Headers1, Body1}} =
