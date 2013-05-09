@@ -160,6 +160,16 @@ handle_post(Form, RD, {targets, {_Meta, _Collection}}=Ctx) ->
 	    Body = jsx:encode([{<<"formErrors">>, Errors}]),
 	    NRD = erli_utils:add_json_response(RD, Body),
 	    {{halt, 422}, NRD, Ctx}
+    end;
+handle_post(Form, RD, {paths, {_Meta, _Collection}}=Ctx) ->
+    case erli_forms:validate(Form, [{<<"target_id">>, [required]}]) of
+	valid ->
+	    Path = #path{target_id=proplists:get_value(<<"target_id">>, Form)},
+	    maybe_store(paths, Path, RD, Ctx);
+	Errors ->
+	    Body = jsx:encode([{<<"formErrors">>, Errors}]),
+	    NRD = erli_utils:add_json_response(RD, Body),
+	    {{halt, 422}, NRD, Ctx}
     end.
 
 maybe_store(CollectionType, Record, RD, Ctx) ->
