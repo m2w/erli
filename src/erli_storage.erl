@@ -124,23 +124,26 @@ read_multiple(visits, {Start, End}) ->
 
 -spec request_removal(object()) ->
 			     {request_accepted | target_banned, object()}.
-request_removal(Target) when is_record(Target, target) ->
+request_removal(Object) when is_record(Object, target) ->
     CurrentLimit = erli_utils:get_env(flag_limit),
     LastModified = erli_utils:unix_timestamp(),
 
-    case Target#target.flag_count of
+    case Object#target.flag_count of
 	FC when FC < CurrentLimit ->
-	    UpdatedTarget = Target#target{flag_count=FC+1,
+	    UpdatedObject = Object#target{flag_count=FC+1,
 					  last_modified=LastModified},
-	    mnesia:dirty_write(targets, UpdatedTarget),
-	    {request_accepted, UpdatedTarget};
+	    mnesia:dirty_write(targets, UpdatedObject),
+	    {request_accepted, UpdatedObject};
 	FC when FC >= CurrentLimit ->
-	    UpdatedTarget = Target#target{last_modified=LastModified,
+	    UpdatedObject = Object#target{last_modified=LastModified,
 					  flag_count=FC+1,
 					  is_banned=true},
-	    ban(UpdatedTarget),
-	    {target_banned, UpdatedTarget}
-    end.
+	    ban(UpdatedObject),
+	    {target_banned, UpdatedObject}
+    end;
+request_removal(Object) when is_record(Object, path) ->
+    Target = read(target, Object#path.target_id),
+    request_removal(Target).
 
 
 -spec count(collection_type()) -> collection_size().
@@ -225,14 +228,14 @@ ban(Target) when is_record(Target, target) ->
     mnesia:transaction(
       fun() ->
 	      AffectedPaths =
-		  mnesia:select(path, [{#path{target_id='$1', _='_'},
-					[{'=', '$1', Target#target.id}],
+		  mnesia:select(paths, [{#path{target_id='$1', _='_'},
+					[{'=:=', '$1', Target#target.id}],
 					['$_']}]),
 	      lists:map(fun(Path) ->
 				UpdatedPath = Path#path{is_banned=true},
-				mnesia:write(UpdatedPath)
+				mnesia:write(paths, UpdatedPath, write)
 			end, AffectedPaths),
-	      mnesia:write(Target),
+	      mnesia:write(targets, Target, write),
 	      length(AffectedPaths)
       end).
 
