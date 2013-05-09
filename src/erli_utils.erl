@@ -107,6 +107,12 @@ to_proplist(#target{id=Id, record_number=_RN, url=Url, last_modified=LM,
      {<<"rels">>,
       [{<<"targetUrl">>, Url},
        {<<"thumbnail">>, <<"/static/thumbnails/", Thumbnail/bitstring>>}]}];
+to_proplist(#path{id=Id, record_number=_RN, target_id=TId, is_banned=B}) ->
+    [{<<"id">>, Id},
+     {<<"href">>, <<"/api/paths/", Id/bitstring>>},
+     {<<"bannedStatus">>, B},
+     {<<"rels">>,
+      [{<<"target">>, <<"/api/targets/", TId/bitstring>>}]}];
 to_proplist(Collection) when is_list(Collection) ->
     lists:foldl(fun(Obj, Acc) -> [to_proplist(Obj)|Acc]
 		end, [], Collection).
