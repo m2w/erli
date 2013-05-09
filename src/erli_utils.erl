@@ -12,6 +12,7 @@
 -export([to_proplist/1,
 	 get_env/1,
 	 priv_dir/1,
+	 get_location/1,
 	 add_json_response/2,
 	 meta_proplist/2,
 	 generate_etag/1,
@@ -113,6 +114,13 @@ to_proplist(#path{id=Id, record_number=_RN, target_id=TId, is_banned=B}) ->
      {<<"bannedStatus">>, B},
      {<<"rels">>,
       [{<<"target">>, <<"/api/targets/", TId/bitstring>>}]}];
+to_proplist(#visit{id=Id, path_id=PId, geo_location=Loc, time=Time}) ->
+    [{<<"id">>, Id},
+     {<<"href">>, <<"/api/visits/", Id/bitstring>>},
+     {<<"visitTime">>, Time},
+     {<<"visitorOrigin">>, Loc},
+     {<<"rels">>,
+      [{<<"path">>, <<"/api/paths/", PId/bitstring>>}]}];
 to_proplist(Collection) when is_list(Collection) ->
     lists:foldl(fun(Obj, Acc) -> [to_proplist(Obj)|Acc]
 		end, [], Collection).
@@ -130,7 +138,11 @@ generate_etag({targets, {Meta, Collection}}) ->
 generate_etag({paths, {Meta, Collection}}) ->
     Banned = length([X || X <- Collection, X#path.is_banned]),
     MetaMD5 = erlang:md5(jsx:encode(Meta)),
-    mochihex:to_hex(<<MetaMD5/binary, Banned/integer>>).
+    mochihex:to_hex(<<MetaMD5/binary, Banned/integer>>);
+generate_etag({visits, {Meta, Collection}}) ->
+    Times = lists:sum([X#visit.time || X <- Collection]),
+    MetaMD5 = erlang:md5(jsx:encode(Meta)),
+    mochihex:to_hex(<<MetaMD5/binary, Times/integer>>).
 
 
 -spec unix_timestamp() -> pos_integer().
@@ -150,6 +162,10 @@ parse_range_header(RD, CollectionType) ->
 	undefined -> {0, Default};
 	Val -> parse_range(string:strip(Val), CollectionType)
     end.
+
+-spec get_location(string()) -> bitstring().
+get_location(Ip) ->
+    list_to_binary(egeoip:get(egeoip:lookup(Ip), country_code)).
 
 %%-----------------------------------------------------------
 %% Internal Methods

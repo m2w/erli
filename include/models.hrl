@@ -40,7 +40,7 @@
 %% Includes links to all related data.
 -record(visit, {id :: incremental_id(),
 		path_id :: id(),
-		peer,
+		geo_location :: bitstring(),
 		time :: unix_timestamp()}).
 
 %%-----------------------------------------------------------

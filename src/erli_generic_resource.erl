@@ -181,8 +181,7 @@ handle_post(Form, RD, {visits, {_Meta, _Collection}}=Ctx) ->
     case erli_forms:validate(Form, [{<<"path_id">>,
 				     [required, is_path_id]}]) of
 	valid ->
-	    Visit = build_record(visit,
-				 [{<<"ip">>, list_to_binary(wrq:peer(RD))}|Form]),
+	    Visit = build_record(visit, [{<<"ip">>, wrq:peer(RD)}|Form]),
 	    maybe_store(visits, Visit, RD, Ctx);
 	Errors ->
 	    Body = jsx:encode([{<<"formErrors">>, Errors}]),
@@ -202,9 +201,8 @@ build_record(path, Form) ->
     end;
 build_record(visit, Form) ->
     PathId = proplists:get_value(<<"path_id">>, Form),
-    Ip = proplists:get_value(<<"ip">>, Form),
-    #visit{path_id=PathId, peer=Ip}.
-
+    Loc = erli_utils:get_location(proplists:get_value(<<"ip">>, Form)),
+    #visit{path_id=PathId, geo_location=Loc}.
 
 
 -spec maybe_store(collection_type(), object(), #wm_reqdata{}, term()) ->
