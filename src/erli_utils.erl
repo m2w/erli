@@ -108,7 +108,7 @@ to_proplist(#target{id=Id, record_number=_RN, url=Url, last_modified=LM,
       [{<<"targetUrl">>, Url},
        {<<"thumbnail">>, <<"/static/thumbnails/", Thumbnail/bitstring>>}]}];
 to_proplist(Collection) when is_list(Collection) ->
-    lists:foldl(fun(Obj, Acc) -> to_proplist(Obj) ++ Acc
+    lists:foldl(fun(Obj, Acc) -> [to_proplist(Obj)|Acc]
 		end, [], Collection).
 
 
