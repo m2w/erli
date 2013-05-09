@@ -58,28 +58,34 @@ create(Obj) when is_record(Obj, target) ->
 	    {error, {conflict,
 		     {Object#target{id= <<"none">>}, ConflictingRecord}}}
     end;
-create(Obj) when is_record(Obj, path) ->
+create(Obj) when is_record(Obj, path) -> % business logic responsible for creating target
     RecordNumber = mnesia:dirty_update_counter(counters, path, 1),
     Object = Obj#path{record_number=RecordNumber},
-    case Object#path.id of
-	undefined ->
-	    case generate_id(paths) of
-		{error, Error} ->
-		    {error, Error};
+    case read(target, Object#path.target_id) of
+	{error, _Error} ->
+	    {error, no_matching_target};
+	_T ->
+	    case Object#path.id of
+		undefined ->
+		    case generate_id(paths) of
+			{error, Error} ->
+			    {error, Error};
+			Id ->
+			    UpdatedObject = Object#path{id=Id},
+			    ok = mnesia:dirty_write(paths, UpdatedObject),
+			    UpdatedObject
+		    end;
 		Id ->
-		    UpdatedObject = Object#path{id=Id},
-		    ok = mnesia:dirty_write(paths, UpdatedObject),
-		    UpdatedObject
-	    end;
-	Id ->
-	    case read(path, Id) of
-		{error, not_found} ->
-		    ok = mnesia:dirty_write(paths, Object),
-		    Object;
-		{error, Error} ->
-		    {error, Error};
-		_Record ->
-		    {error, conflict}
+		    case read(path, Id) of
+			{error, not_found} ->
+			    ok = mnesia:dirty_write(paths, Object),
+			    Object;
+			{error, Error} ->
+			    {error, Error};
+			ConflictingObject ->
+			    {error, {conflict,
+				     {Object, ConflictingObject}}}
+		    end
 	    end
     end;
 create(Obj) when is_record(Obj, visit) ->
@@ -101,19 +107,19 @@ read(visit, Id) ->
 -spec read_multiple(collection_type(), range()) -> collection().
 read_multiple(targets, {Start, End}) ->
     mnesia:dirty_select(targets, [{#target{record_number='$1', _='_'},
-				  [{'>=', '$1', Start},
-				   {'=<', '$1', End}],
-				  ['$_']}]);
+				   [{'>=', '$1', Start},
+				    {'=<', '$1', End}],
+				   ['$_']}]);
 read_multiple(paths, {Start, End}) ->
     mnesia:dirty_select(paths, [{#path{record_number='$1', _='_'},
-				[{'>=', '$1', Start},
-				 {'=<', '$1', End}],
-				['$_']}]);
-read_multiple(visits, {Start, End}) ->
-    mnesia:dirty_select(visits, [{#visit{id='$1', _='_'},
 				 [{'>=', '$1', Start},
 				  {'=<', '$1', End}],
-				 ['$_']}]).
+				 ['$_']}]);
+read_multiple(visits, {Start, End}) ->
+    mnesia:dirty_select(visits, [{#visit{id='$1', _='_'},
+				  [{'>=', '$1', Start},
+				   {'=<', '$1', End}],
+				  ['$_']}]).
 
 
 -spec request_removal(object()) ->
