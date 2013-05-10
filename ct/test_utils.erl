@@ -47,6 +47,7 @@ generate_visits(N) ->
     Paths = generate_paths(random:uniform(N)),
     generate_visits(N, Paths, []).
 
+
 validate_meta(TotalSize, ObjCount, RangeStart, RangeEnd, MaxOffset, Meta) ->
     TotalSize = proplists:get_value(<<"totalCollectionSize">>, Meta),
     ObjCount = proplists:get_value(<<"objectCount">>, Meta),
@@ -98,9 +99,9 @@ generate_visits(N, Paths, Acc) ->
     Loc = erli_utils:get_location(gen_rand_ip()),
     case erli_storage:create(#visit{path_id=Id, geo_location=Loc}) of
 	{error, Error} ->
-	    generate_paths(N, Paths, Acc);
+	    generate_visits(N, Paths, Acc);
 	V ->
-	    generate_paths(N - 1, Paths, [V|Acc])
+	    generate_visits(N - 1, Paths, [V|Acc])
     end.
 
 gen_rand_ip() ->
