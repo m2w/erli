@@ -105,8 +105,8 @@ generate_visits(N, Paths, Acc) ->
 
 gen_rand_ip() ->
     Tuple = [integer_to_list(X) ||
-		 X <- {random:uniform(255), random:uniform(255),
-		       random:uniform(255), random:uniform(255)}],
+		 X <- [random:uniform(255), random:uniform(255),
+		       random:uniform(255), random:uniform(255)]],
     string:join(Tuple, ".").
 
 
