@@ -23,7 +23,13 @@
 %%-----------------------------------------------------------
 
 init(_Options) ->
-    {ok, {}}.
+    Data = jsx:encode([{<<"title">>, <<"erli API">>},
+		       {<<"description">>,
+			<<"simple REST API to the erli URL shortening service">>},
+		       {<<"rels">>, [{<<"visits">>, <<"/api/visits/">>},
+				     {<<"paths">>, <<"/api/paths/">>},
+				     {<<"targets">>, <<"/api/targets">>}]}]),
+    {ok, Data}.
 
 
 allowed_methods(RD, Ctx) ->
@@ -36,7 +42,8 @@ options(RD, Ctx) ->
 
 
 generate_etag(RD, Ctx) ->
-    {"", RD, Ctx}.
+    Etag = mochihex:to_hex(erlang:md5(Ctx)),
+    {Etag, RD, Ctx}.
 
 
 content_types_provided(RD, Ctx) ->
@@ -44,10 +51,4 @@ content_types_provided(RD, Ctx) ->
 
 
 as_json(RD, Ctx) ->
-    Data = jsx:encode([{<<"title">>, <<"erli API">>},
-		      {<<"description">>,
-		       <<"simple REST API to the erli URL shortening service">>},
-		      {<<"rels">>, [{<<"visits">>, <<"/api/visits/">>},
-				    {<<"paths">>, <<"/api/paths/">>},
-				    {<<"targets">>, <<"/api/targets">>}]}]),
-    {Data, RD, Ctx}.
+    {Ctx, RD, Ctx}.
