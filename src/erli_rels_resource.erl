@@ -28,7 +28,7 @@
 %% Types
 %%-----------------------------------------------------------
 
--type initial_resource_state() :: {path, visits} |
+-type initial_resource_state() :: {path, visits} | {path, target} |
 				  {target, paths} | {target, visits}.
 
 %%-----------------------------------------------------------
@@ -44,6 +44,8 @@ allowed_methods(RD, Ctx) ->
     {['GET', 'HEAD', 'OPTIONS'], RD, Ctx}.
 
 
+malformed_request(RD, {_, RelType}=Ctx) when ?is_object(RelType) ->
+    {false, RD, Ctx};
 malformed_request(RD, {_ObjType, RelType}=Ctx) ->
     case erli_utils:parse_range_header(RD, RelType) of
 	{error, invalid_range} ->
@@ -55,6 +57,9 @@ malformed_request(RD, {_ObjType, RelType}=Ctx) ->
     end.
 
 
+options(RD, {_, RelType}=Ctx) when ?is_object(RelType) ->
+    {[{"Content-Length", "0"},
+      {"Allow", "GET, HEAD, OPTIONS"}], RD, Ctx};
 options(RD, {_, RelType}=Ctx) ->
     {[{"Content-Length", "0"},
       {"Accept-Ranges", RelType},
@@ -68,10 +73,14 @@ resource_exists(RD, {{ObjType, RelType}, Range}=Ctx) ->
 	    {false, RD, Ctx};
 	{false, Obj} ->
 	    {false, RD, {ObjType, Obj}};
-	{true, _Obj} ->
+	{true, _Obj} when ?is_collection(RelType) ->
 	    Data = erli_storage:read_multiple(RelType, Range),
 	    Meta = erli_utils:meta_proplist(RelType, Range),
-	    {true, RD, {RelType, {Meta, Data}}}
+	    {true, RD, {RelType, {Meta, Data}}};
+	{true, Obj} when is_record(Obj, path) ->
+	    %% this assumes that the many-to-one relationship is enforced
+	    Record = erli_storage:read(target, Obj#path.target_id),
+	    {true, RD, {RelType, Record}}
 	end.
 
 
