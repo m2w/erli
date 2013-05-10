@@ -14,6 +14,7 @@
 	 priv_dir/1,
 	 get_location/1,
 	 add_json_response/2,
+	 int_to_bitstring/1,
 	 meta_proplist/2,
 	 generate_etag/1,
 	 unix_timestamp/0,
@@ -115,7 +116,7 @@ to_proplist(#path{id=Id, record_number=_RN, target_id=TId, is_banned=B}) ->
      {<<"rels">>,
       [{<<"target">>, <<"/api/targets/", TId/bitstring>>}]}];
 to_proplist(#visit{id=Id, path_id=PId, geo_location=Loc, time=Time}) ->
-    BinId = list_to_binary(integer_to_list(Id)),
+    BinId = int_to_bitstring(Id),
     [{<<"id">>, BinId},
      {<<"href">>, <<"/api/visits/", BinId/bitstring>>},
      {<<"visitTime">>, Time},
@@ -125,6 +126,11 @@ to_proplist(#visit{id=Id, path_id=PId, geo_location=Loc, time=Time}) ->
 to_proplist(Collection) when is_list(Collection) ->
     lists:foldl(fun(Obj, Acc) -> [to_proplist(Obj)|Acc]
 		end, [], Collection).
+
+
+-spec int_to_bitstring(integer()) -> bitstring().
+int_to_bitstring(Int) ->
+    list_to_binary(integer_to_list(Int)).
 
 
 -spec generate_etag({object_type(), object()} | {collection_type(), {meta_data(), collection()}}) -> etag().
