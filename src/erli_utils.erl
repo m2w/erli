@@ -115,8 +115,9 @@ to_proplist(#path{id=Id, record_number=_RN, target_id=TId, is_banned=B}) ->
      {<<"rels">>,
       [{<<"target">>, <<"/api/targets/", TId/bitstring>>}]}];
 to_proplist(#visit{id=Id, path_id=PId, geo_location=Loc, time=Time}) ->
-    [{<<"id">>, <<Id/integer>>},
-     {<<"href">>, <<"/api/visits/", Id/integer>>},
+    BinId = list_to_binary(integer_to_list(Id)),
+    [{<<"id">>, BinId},
+     {<<"href">>, <<"/api/visits/", BinId/bitstring>>},
      {<<"visitTime">>, Time},
      {<<"visitorOrigin">>, Loc},
      {<<"rels">>,
