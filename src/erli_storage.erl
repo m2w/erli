@@ -90,7 +90,8 @@ create(Obj) when is_record(Obj, path) ->
     end;
 create(Obj) when is_record(Obj, visit) ->
     Id = mnesia:dirty_update_counter(counters, visit, 1),
-    UpdatedObject = Obj#visit{id=Id},
+    Time = erli_utils:unix_timestamp(),
+    UpdatedObject = Obj#visit{id=Id, time=Time},
     ok = mnesia:dirty_write(visits, UpdatedObject),
     UpdatedObject.
 

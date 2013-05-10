@@ -232,8 +232,11 @@ maybe_store(CollectionType, Record, RD, Ctx) ->
     end.
 
 -spec obj_type_to_col_type(path) -> paths;
-			  (target) -> targets.
+			  (target) -> targets;
+			  (visit) -> visits.
 obj_type_to_col_type(path) ->
     paths;
 obj_type_to_col_type(target) ->
-    targets.
+    targets;
+obj_type_to_col_type(visit) ->
+    visits.
