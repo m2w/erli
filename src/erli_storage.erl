@@ -91,7 +91,8 @@ create(Obj) when is_record(Obj, path) ->
 create(Obj) when is_record(Obj, visit) ->
     Id = mnesia:dirty_update_counter(counters, visit, 1),
     Time = erli_utils:unix_timestamp(),
-    UpdatedObject = Obj#visit{id=erli_utils:int_to_bitstring(Id), time=Time},
+    UpdatedObject = Obj#visit{id=erli_utils:int_to_bitstring(Id),
+			      record_number=Id, time=Time},
     ok = mnesia:dirty_write(visits, UpdatedObject),
     UpdatedObject.
 
@@ -117,7 +118,7 @@ read_multiple(paths, {Start, End}) ->
 				  {'=<', '$1', End}],
 				 ['$_']}]);
 read_multiple(visits, {Start, End}) ->
-    mnesia:dirty_select(visits, [{#visit{id='$1', _='_'},
+    mnesia:dirty_select(visits, [{#visit{record_number='$1', _='_'},
 				  [{'>=', '$1', Start},
 				   {'=<', '$1', End}],
 				  ['$_']}]).

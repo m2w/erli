@@ -38,7 +38,8 @@
 
 %% @doc Represents a single visit to a shortened URL.
 %% Includes links to all related data.
--record(visit, {id :: incremental_id(),
+-record(visit, {id :: id(),
+		record_number :: incremental_id(),
 		path_id :: id(),
 		geo_location :: bitstring(),
 		time :: unix_timestamp()}).
