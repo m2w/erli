@@ -12,6 +12,7 @@
 -export([to_proplist/1,
 	 get_env/1,
 	 priv_dir/1,
+	 obj_type_to_col_type/1,
 	 get_location/1,
 	 add_json_response/2,
 	 int_to_bitstring/1,
@@ -130,6 +131,17 @@ to_proplist(Collection) when is_list(Collection) ->
 -spec int_to_bitstring(integer()) -> bitstring().
 int_to_bitstring(Int) ->
     list_to_binary(integer_to_list(Int)).
+
+
+-spec obj_type_to_col_type(path) -> paths;
+			  (target) -> targets;
+			  (visit) -> visits.
+obj_type_to_col_type(path) ->
+    paths;
+obj_type_to_col_type(target) ->
+    targets;
+obj_type_to_col_type(visit) ->
+    visits.
 
 
 -spec generate_etag({object_type(), object()} | {collection_type(), {meta_data(), collection()}}) -> etag().

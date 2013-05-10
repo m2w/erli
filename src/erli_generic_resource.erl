@@ -117,7 +117,7 @@ content_types_provided(RD, Ctx) ->
 
 as_json(RD, {ObjectType, Rec}=Ctx) when ?is_object(ObjectType) ->
     maybe_record_visit(RD, Ctx),
-    CollectionType = obj_type_to_col_type(ObjectType),
+    CollectionType = erli_utils:obj_type_to_col_type(ObjectType),
     Key = atom_to_binary(CollectionType, latin1),
     Data = jsx:encode([{Key, erli_utils:to_proplist(Rec)}]),
     {Data, RD, Ctx};
@@ -125,6 +125,7 @@ as_json(RD, {CollectionType, {Meta, Collection}}=Ctx) ->
     Key = atom_to_binary(CollectionType, latin1),
     Data = jsx:encode([{Key, erli_utils:to_proplist(Collection)},
 		       {<<"meta">>, Meta}]),
+    %% @CHECK: move this up into the resource_exists call? check where HEAD ends
     ContentRangeHeader = erli_utils:build_content_range_header(CollectionType,
 							       Meta),
     NRD = wrq:set_resp_header("Content-Range", ContentRangeHeader, RD),
@@ -230,13 +231,3 @@ maybe_store(CollectionType, Record, RD, Ctx) ->
 	    NRD = erli_utils:add_json_response(RD, Body),
 	    {true, NRD, Ctx}
     end.
-
--spec obj_type_to_col_type(path) -> paths;
-			  (target) -> targets;
-			  (visit) -> visits.
-obj_type_to_col_type(path) ->
-    paths;
-obj_type_to_col_type(target) ->
-    targets;
-obj_type_to_col_type(visit) ->
-    visits.
