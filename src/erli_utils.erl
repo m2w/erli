@@ -165,7 +165,8 @@ parse_range_header(RD, CollectionType) ->
 
 -spec get_location(string()) -> bitstring().
 get_location(Ip) ->
-    list_to_binary(egeoip:get(egeoip:lookup(Ip), country_code)).
+    {ok, Rec} = egeoip:lookup(Ip),
+    list_to_binary(egeoip:get(Rec, country_code)).
 
 %%-----------------------------------------------------------
 %% Internal Methods
