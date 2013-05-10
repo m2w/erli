@@ -11,6 +11,7 @@
 -export([clear_all_mnesia_data/0,
 	 generate_targets/1,
 	 generate_paths/1,
+	 generate_visits/1,
 	 validate_meta/6,
 	 post_request/2,
 	 build_request/4,
@@ -41,6 +42,10 @@ generate_paths(N) ->
 generate_targets(N) ->
     generate_targets(N, []).
 
+
+generate_visits(N) ->
+    Paths = generate_paths(random:uniform(N)),
+    generate_visits(N, Paths, []).
 
 validate_meta(TotalSize, ObjCount, RangeStart, RangeEnd, MaxOffset, Meta) ->
     TotalSize = proplists:get_value(<<"totalCollectionSize">>, Meta),
@@ -79,11 +84,30 @@ generate_paths(N, Targets, Acc) ->
     Id = (lists:nth(X, Targets))#target.id,
     case erli_storage:create(#path{target_id=Id}) of
 	{error, Error} ->
-	    error_logger:info_msg("error = ~s", [Error]),
 	    generate_paths(N, Targets, Acc);
 	P ->
 	    generate_paths(N - 1, Targets, [P|Acc])
     end.
+
+
+generate_visits(0, _Paths, Acc) ->
+    Acc;
+generate_visits(N, Paths, Acc) ->
+    X = random:uniform(length(Paths)),
+    Id = (lists:nth(X, Paths))#path.id,
+    Loc = erli_utils:get_location(gen_rand_ip()),
+    case erli_storage:create(#visit{path_id=Id, geo_location=Loc}) of
+	{error, Error} ->
+	    generate_paths(N, Paths, Acc);
+	V ->
+	    generate_paths(N - 1, Paths, [V|Acc])
+    end.
+
+gen_rand_ip() ->
+    Tuple = [integer_to_list(X) ||
+		 X <- {random:uniform(255), random:uniform(255),
+		       random:uniform(255), random:uniform(255)}],
+    string:join(Tuple, ".").
 
 
 generate_targets(0, Acc) ->
