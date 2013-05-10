@@ -40,10 +40,12 @@ init([InitialState]) ->
     {ok, InitialState}.
 
 
-allowed_methods(RD, Ctx) when ?is_collection(Ctx) ->
-    {['GET', 'POST', 'HEAD', 'OPTIONS'], RD, Ctx};
+allowed_methods(RD, visits=Ctx) ->
+    {['GET', 'HEAD', 'OPTIONS'], RD, Ctx};
 allowed_methods(RD, visit=Ctx) ->
     {['GET', 'HEAD', 'OPTIONS'], RD, Ctx};
+allowed_methods(RD, Ctx) when ?is_collection(Ctx) ->
+    {['GET', 'POST', 'HEAD', 'OPTIONS'], RD, Ctx};
 allowed_methods(RD, Ctx) ->
     {['GET', 'DELETE', 'HEAD', 'OPTIONS'], RD, Ctx}.
 
@@ -61,11 +63,18 @@ malformed_request(RD, Ctx) ->
     {false, RD, Ctx}.
 
 
+options(RD, {visits, _Range}=Ctx) ->
+    {[{"Content-Length", "0"},
+      {"Accept-Ranges", visits},
+      {"Allow", "GET, HEAD, OPTIONS"}], RD, Ctx};
 options(RD, {CollectionType, _Range}=Ctx) ->
     ColType = atom_to_list(CollectionType),
     {[{"Content-Length", "0"},
       {"Accept-Ranges", ColType},
       {"Allow", "GET, POST, HEAD, OPTIONS"}], RD, Ctx};
+options(RD, visit=Ctx) ->
+    {[{"Content-Length", "0"},
+      {"Allow", "GET, HEAD, OPTIONS"}], RD, Ctx};
 options(RD, Ctx) ->
     {[{"Content-Length", "0"},
       {"Allow", "GET, DELETE, HEAD, OPTIONS"}], RD, Ctx}.
@@ -107,6 +116,7 @@ content_types_provided(RD, Ctx) ->
 
 
 as_json(RD, {ObjectType, Rec}=Ctx) when ?is_object(ObjectType) ->
+    maybe_record_visit(RD, Ctx),
     CollectionType = obj_type_to_col_type(ObjectType),
     Key = atom_to_binary(CollectionType, latin1),
     Data = jsx:encode([{Key, erli_utils:to_proplist(Rec)}]),
@@ -149,6 +159,13 @@ delete_completed(RD, {_ObjectType, Obj}=Ctx) when is_record(Obj, path) ->
 %% Internal Methods
 %%----------------------------------------------------------
 
+maybe_record_visit(RD, {path, Record}) ->
+    Loc = erli_utils:get_location(wrq:peer(RD)),
+    Visit = #visit{path_id=Record#path.id, geo_location=Loc},
+    erli_storage:create(Visit);
+maybe_record_visit(_RD, _) ->
+    ignore.
+
 -spec handle_post(proplist(), #wm_reqdata{}, {targets, collection_data()}) ->
 			 {true | {halt, 422}, #wm_reqdata{},
 			  {targets, collection_data()}};
@@ -176,17 +193,6 @@ handle_post(Form, RD, {paths, {_Meta, _Collection}}=Ctx) ->
 	    Body = jsx:encode([{<<"formErrors">>, Errors}]),
 	    NRD = erli_utils:add_json_response(RD, Body),
 	    {{halt, 422}, NRD, Ctx}
-    end;
-handle_post(Form, RD, {visits, {_Meta, _Collection}}=Ctx) ->
-    case erli_forms:validate(Form, [{<<"path_id">>,
-				     [required, is_path_id]}]) of
-	valid ->
-	    Visit = build_record(visit, [{<<"ip">>, wrq:peer(RD)}|Form]),
-	    maybe_store(visits, Visit, RD, Ctx);
-	Errors ->
-	    Body = jsx:encode([{<<"formErrors">>, Errors}]),
-	    NRD = erli_utils:add_json_response(RD, Body),
-	    {{halt, 422}, NRD, Ctx}
     end.
 
 
@@ -198,11 +204,7 @@ build_record(path, Form) ->
 	    #path{target_id=TargetId};
 	Id ->
 	    #path{target_id=TargetId, id=Id}
-    end;
-build_record(visit, Form) ->
-    PathId = proplists:get_value(<<"path_id">>, Form),
-    Loc = erli_utils:get_location(proplists:get_value(<<"ip">>, Form)),
-    #visit{path_id=PathId, geo_location=Loc}.
+    end.
 
 
 -spec maybe_store(collection_type(), object(), #wm_reqdata{}, term()) ->
