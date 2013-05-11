@@ -29,7 +29,8 @@
 %% Types
 %%-----------------------------------------------------------
 
--type initial_resource_state() :: target | targets | path | paths.
+-type initial_resource_state() :: object_type() | collection_type() |
+				  relation_type().
 
 %%-----------------------------------------------------------
 %% Webmachine Callbacks
@@ -40,16 +41,26 @@ init([InitialState]) ->
     {ok, InitialState}.
 
 
-allowed_methods(RD, visits=Ctx) ->
+allowed_methods(RD, {_Resource, _Relation}=Ctx) ->
     {['GET', 'HEAD', 'OPTIONS'], RD, Ctx};
-allowed_methods(RD, visit=Ctx) ->
+allowed_methods(RD, Ctx) when ?is_visit_type(Ctx) ->
     {['GET', 'HEAD', 'OPTIONS'], RD, Ctx};
 allowed_methods(RD, Ctx) when ?is_collection(Ctx) ->
     {['GET', 'POST', 'HEAD', 'OPTIONS'], RD, Ctx};
 allowed_methods(RD, Ctx) ->
     {['GET', 'DELETE', 'HEAD', 'OPTIONS'], RD, Ctx}.
 
-
+malformed_request(RD, {_Resource, Relation}=Ctx) when ?is_object(Relation) ->
+    {false, RD, Ctx};
+malformed_request(RD, {_Resource, Relation}=Ctx) when ?is_collection(Relation) ->
+    case erli_utils:parse_range_header(RD, Relation) of
+	{error, invalid_range} ->
+	    ContentRange = "*/" ++ integer_to_list(erli_storage:count(Relation)),
+	    NRD = wrq:set_resp_header("Content-Range", ContentRange, RD),
+	    {true, NRD, Ctx};
+	Range ->
+	    {false, RD, {Ctx, Range}}
+    end;
 malformed_request(RD, Ctx) when ?is_collection(Ctx) ->
     case erli_utils:parse_range_header(RD, Ctx) of
 	{error, invalid_range} ->
@@ -80,11 +91,7 @@ options(RD, Ctx) ->
       {"Allow", "GET, DELETE, HEAD, OPTIONS"}], RD, Ctx}.
 
 
-resource_exists(RD, {CollectionType, Range}) ->
-    Data = erli_storage:read_multiple(CollectionType, Range),
-    Meta = erli_utils:meta_proplist(CollectionType, Range),
-    {true, RD, {CollectionType, {Meta, Data}}};
-resource_exists(RD, ObjectType) ->
+resource_exists(RD, ObjectType) when ?is_object(ObjectType) ->
     Id = list_to_binary(wrq:path_info(id, RD)),
     case erli_storage:read(ObjectType, Id) of
 	{error, _Error} ->
@@ -95,7 +102,39 @@ resource_exists(RD, ObjectType) ->
 	    {not Obj#path.is_banned, RD, {ObjectType, Obj}};
 	Obj ->
 	    {true, RD, {ObjectType, Obj}}
-    end.
+    end;
+resource_exists(RD, {path, target}=Ctx) ->
+    Id = list_to_binary(wrq:path_info(id, RD)),
+    case root_elem_exists(path, Id) of
+	false ->
+	    {false, RD, Ctx};
+	{false, Obj} ->
+	    {false, RD, {path, Obj}};
+	{true, Obj} ->
+	    %% this assumes that the many-to-one relationship is enforced
+	    Record = erli_storage:read(target, Obj#path.target_id),
+	    {true, RD, {target, Record}}
+	end;
+resource_exists(RD, {{ObjectType, Relation}, Range}=Ctx)
+  when ?is_collection(Relation) ->
+    Id = list_to_binary(wrq:path_info(id, RD)),
+    case root_elem_exists(ObjectType, Id) of
+	false ->
+	    {false, RD, Ctx};
+	{false, Obj} ->
+	    {false, RD, {ObjectType, Obj}};
+	{true, _Obj} ->
+	    Data = erli_storage:read_multiple(Relation, Range),
+	    Meta = erli_utils:meta_proplist(Relation, Range),
+	    {true, RD, {Relation, {Meta, Data}}}
+    end;
+resource_exists(RD, {CollectionType, Range}) ->
+    Data = erli_storage:read_multiple(CollectionType, Range),
+    Meta = erli_utils:meta_proplist(CollectionType, Range),
+    ContentRangeHeader = erli_utils:build_content_range_header(CollectionType,
+							       Meta),
+    NRD = wrq:set_resp_header("Content-Range", ContentRangeHeader, RD),
+    {true, NRD, {CollectionType, {Meta, Data}}}.
 
 
 previously_existed(RD, {path, Rec}=Ctx) ->
@@ -125,11 +164,7 @@ as_json(RD, {CollectionType, {Meta, Collection}}=Ctx) ->
     Key = atom_to_binary(CollectionType, latin1),
     Data = jsx:encode([{Key, erli_utils:to_proplist(Collection)},
 		       {<<"meta">>, Meta}]),
-    %% @CHECK: move this up into the resource_exists call? check where HEAD ends
-    ContentRangeHeader = erli_utils:build_content_range_header(CollectionType,
-							       Meta),
-    NRD = wrq:set_resp_header("Content-Range", ContentRangeHeader, RD),
-    {Data, NRD, Ctx}.
+    {Data, RD, Ctx}.
 
 
 process_post(RD, Ctx) ->
@@ -230,4 +265,15 @@ maybe_store(CollectionType, Record, RD, Ctx) ->
 				erli_utils:to_proplist(SavedTarget)}]),
 	    NRD = erli_utils:add_json_response(RD, Body),
 	    {true, NRD, Ctx}
+    end.
+
+
+root_elem_exists(ObjType, Id) ->
+    case erli_storage:read(ObjType, Id) of
+	{error, _Error} ->
+	    false;
+	Obj when is_record(Obj, target) ->
+	    {not Obj#target.is_banned, Obj};
+	Obj when is_record(Obj, path) ->
+	    {not Obj#path.is_banned, Obj}
     end.

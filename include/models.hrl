@@ -55,6 +55,7 @@
 -type collection() :: list(object()).
 -type object_type() :: target | path | visit.
 -type collection_type() :: targets | paths | visits.
+-type relation_type() :: {object_type(), collection_type() | object_type()}.
 -type meta_data() :: [{bitstring(), non_neg_integer()}].
 -type proplist() :: [{bitstring(), term()}].
 -type collection_size() :: non_neg_integer().
@@ -66,3 +67,4 @@
 
 -define(is_collection(X), (X =:= targets orelse X =:= paths orelse X =:= visits)).
 -define(is_object(X), (X =:= target orelse X =:= path orelse X =:= visit)).
+-define(is_visit_type(X), (X =:= visit orelse X =:= visits)).
