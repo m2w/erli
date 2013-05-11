@@ -26,6 +26,8 @@
 -type initial_resource_state() :: object_type() | collection_type() |
 				  relation_type().
 -type rd() :: #wm_reqdata{}.
+-type p_col_type() :: targets | paths.
+-type p_col() :: {meta_data(), [#target{} | #path{}]}.
 
 %%-----------------------------------------------------------
 %% Webmachine Callbacks
@@ -102,14 +104,12 @@ options(RD, Ctx) ->
 
 -spec resource_exists(rd(), object_type()) ->
 			     {boolean(), rd(), {object_type(), object()}};
-		     (rd(), {A :: object_type(), B :: object_type()}) ->
-			     {boolean(), rd(), {object_type(), B::object()}};
+		     (rd(), {object_type(), object_type()}) ->
+			     {boolean(), rd(), {object_type(), object()}};
 		     (rd(), {collection_type(), range()}) ->
 			     {boolean(), rd(), {collection_type(), collection()}};
 		     (rd(), {{object_type(), collection_type()}, range()}) ->
-			     {boolean(), rd(), {collection_type(), collection()}};
-		     (rd(), {object_type(), object_type()}) ->
-			     {boolean(), rd(), {object_type(), object()}}.
+			     {boolean(), rd(), {collection_type(), collection()}}.
 resource_exists(RD, ObjectType) when ?is_object(ObjectType) ->
     Id = list_to_binary(wrq:path_info(id, RD)),
     case erli_storage:read(ObjectType, Id) of
@@ -238,10 +238,10 @@ maybe_record_visit(RD, {path, Record}) ->
     erli_storage:create(Visit);
 maybe_record_visit(_RD, _) -> ignore.
 
--spec handle_post(proplist(), rd(), {collection_type(), collection()}) ->
-			 {true, rd(), term()} |
-			 {{halt, 409}, rd(), term()} |
-			 {{halt, 422}, rd(), term()}.
+-spec handle_post(proplist(), rd(), {p_col_type(), p_col()}) ->
+			 {true , rd(), {p_col_type(), p_col()}} |
+			 {{halt, 409}, rd(), {p_col_type(), p_col()}} |
+			 {{halt, 422}, rd(), {p_col_type(), p_col()}}.
 handle_post(Form, RD, {targets, {_Meta, _Collection}} = Ctx) ->
     case erli_forms:validate(Form,
 			     [{<<"target_url">>, [required, is_url]}])
