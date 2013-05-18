@@ -11,7 +11,9 @@
 -export([clear_all_mnesia_data/0,
 	 generate_targets/1,
 	 generate_paths/1,
+	 generate_paths/2,
 	 generate_visits/1,
+	 generate_visits/2,
 	 validate_meta/6,
 	 post_request/2,
 	 build_request/4,
@@ -38,6 +40,8 @@ generate_paths(N) ->
     Targets = generate_targets(random:uniform(N)),
     generate_paths(N, Targets, []).
 
+generate_paths(N, Target) when is_record(Target, target) ->
+    generate_paths(N, [Target], []).
 
 generate_targets(N) ->
     generate_targets(N, []).
@@ -47,6 +51,11 @@ generate_visits(N) ->
     Paths = generate_paths(random:uniform(N)),
     generate_visits(N, Paths, []).
 
+generate_visits(N, Paths) when is_list(Paths) ->
+    generate_visits(N, Paths, []);
+generate_visits(N, Record) when is_record(Record, target) ->
+    Paths = generate_paths(random:uniform(N), Record),
+    generate_visits(N, Paths, []).
 
 validate_meta(TotalSize, ObjCount, RangeStart, RangeEnd, MaxOffset, Meta) ->
     TotalSize = proplists:get_value(<<"totalCollectionSize">>, Meta),
@@ -106,8 +115,8 @@ generate_visits(N, Paths, Acc) ->
 
 gen_rand_ip() ->
     Tuple = [integer_to_list(X) ||
-		 X <- [random:uniform(255), random:uniform(255),
-		       random:uniform(255), random:uniform(255)]],
+		X <- [random:uniform(255), random:uniform(255),
+		      random:uniform(255), random:uniform(255)]],
     string:join(Tuple, ".").
 
 
