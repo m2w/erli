@@ -82,8 +82,15 @@ malformed_request(RD, Ctx) -> {false, RD, Ctx}.
 
 -spec options(rd(), object_type()) ->
 		     {[{string(), string()}], rd(), object_type()};
+	     (rd(), {{object_type(), collection_type()}, range()}) ->
+		     {[{string(), string()}], rd(), {{object_type(), collection_type()}, range()}};
 	     (rd(), {collection_type(), range()}) ->
 		     {[{string(), string()}], rd(), {collection_type(), range()}}.
+options(RD, {{_ObjectType, CollectionType}, _Range} = Ctx) ->
+    ColType = atom_to_list(CollectionType),
+    {[{"Content-Length", "0"}, {"Accept-Ranges", ColType},
+      {"Allow", "GET, HEAD, OPTIONS"}],
+     RD, Ctx};
 options(RD, {visits, _Range} = Ctx) ->
     {[{"Content-Length", "0"}, {"Accept-Ranges", visits},
       {"Allow", "GET, HEAD, OPTIONS"}],
