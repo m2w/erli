@@ -62,7 +62,6 @@ idempotent_calls_to_collection(Config) ->
 
     {ok, {{"HTTP/1.1", 200, _ReasonPhrase}, _Headers, Body}} =
 	test_utils:build_request(get, Config),
-    error_logger:info_msg("body = ~s", [Body]),
     B = jsx:decode(list_to_binary(Body)),
     DefaultOffset = ?config(default_offset, Config),
     DefaultOffset = length(proplists:get_value(<<"visits">>, B)),

@@ -40,8 +40,10 @@ generate_paths(N) ->
     Targets = generate_targets(random:uniform(N)),
     generate_paths(N, Targets, []).
 
+
 generate_paths(N, Target) when is_record(Target, target) ->
     generate_paths(N, [Target], []).
+
 
 generate_targets(N) ->
     generate_targets(N, []).
@@ -51,11 +53,13 @@ generate_visits(N) ->
     Paths = generate_paths(random:uniform(N)),
     generate_visits(N, Paths, []).
 
+
 generate_visits(N, Paths) when is_list(Paths) ->
     generate_visits(N, Paths, []);
 generate_visits(N, Record) when is_record(Record, target) ->
     Paths = generate_paths(random:uniform(N), Record),
     generate_visits(N, Paths, []).
+
 
 validate_meta(TotalSize, ObjCount, RangeStart, RangeEnd, MaxOffset, Meta) ->
     TotalSize = proplists:get_value(<<"totalCollectionSize">>, Meta),
