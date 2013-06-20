@@ -1,4 +1,4 @@
 ebin/
-Mnesia.nonode@nohost
+Mnesia.*
 log/
 ct/logs/
