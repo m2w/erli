@@ -57,7 +57,47 @@ all() ->
      idempotent_calls_to_empty_collection,
      post_json_data,
      idempotent_calls_to_entity,
+     relationship_lookups,
      delete_entity].
+
+relationship_lookups(Config) ->
+    T = #target{url= <<"http://google.com">>},
+    Target = erli_storage:create(T),
+    Path = test_utils:generate_paths(1, Target),
+    Visits = test_utils:generate_visits(35, Path),
+    ExpectedMethods = [<<"GET">>, <<"HEAD">>, <<"OPTIONS">>],
+    Id = (hd(Path))#path.id,
+    Tid = Target#target.id,
+
+    %% OPTIONS
+    {ok, {{"HTTP/1.1", 200, _ReasonPhrase}, OptionsHeaders, []}} =
+	httpc:request(options, {?config(root_url, Config) ++
+				    binary_to_list(Id) ++ "/visits",
+				[]}, [], []),
+    "0" = proplists:get_value("content-length", OptionsHeaders),
+    "visits" = proplists:get_value("accept-ranges", OptionsHeaders),
+    Methods = re:split(proplists:get_value("allow", OptionsHeaders), ",?\s"),
+    true = lists:all(fun(M) -> lists:member(M, ExpectedMethods) end, Methods),
+
+    %% Ranges
+    {ok, {{"HTTP/1.1", 200, _ReasonPhrase}, _Headers, Body}} =
+	httpc:request(get, {?config(root_url, Config) ++
+				binary_to_list(Id) ++ "/visits",
+			    []}, [], []),
+    B = jsx:decode(list_to_binary(Body)),
+    Default = ?config(default_offset, Config),
+    Default = length(proplists:get_value(<<"visits">>, B)),
+    Meta = proplists:get_value(<<"meta">>, B),
+    test_utils:validate_meta(35, 25, 0,
+			     Default,
+			     ?config(max_offset, Config), Meta),
+
+    {ok, {{"HTTP/1.1", 200, _ReasonPhrase}, _Headers1, Body1}} =
+	httpc:request(get, {?config(root_url, Config) ++
+				binary_to_list(Id) ++ "/target",
+			    [{"Range", "paths=4-"}]}, [], []),
+    B1 = jsx:decode(list_to_binary(Body1)),
+    Tid = proplists:get_value(<<"id">>, proplists:get_value(<<"targets">>, B1)).
 
 idempotent_calls_to_collection(Config) ->
     test_utils:generate_paths(30),

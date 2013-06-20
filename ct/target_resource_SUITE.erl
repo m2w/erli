@@ -58,7 +58,54 @@ all() ->
      idempotent_calls_to_empty_collection,
      post_json_data,
      idempotent_calls_to_entity,
-     delete_entity].
+     delete_entity,
+     relationship_lookups].
+
+
+relationship_lookups(Config) ->
+    T = #target{url= <<"http://google.com">>},
+    Target = erli_storage:create(T),
+    Paths = test_utils:generate_paths(8, Target),
+    Visits = test_utils:generate_visits(40, Paths),
+    ExpectedMethods = [<<"GET">>, <<"HEAD">>, <<"OPTIONS">>],
+    Id = Target#target.id,
+
+    %% OPTIONS
+    {ok, {{"HTTP/1.1", 200, _ReasonPhrase}, OptionsHeaders, []}} =
+	httpc:request(options, {?config(root_url, Config) ++
+				    binary_to_list(Id) ++ "/paths",
+				[]}, [], []),
+    "0" = proplists:get_value("content-length", OptionsHeaders),
+    "paths" = proplists:get_value("accept-ranges", OptionsHeaders),
+    Methods = re:split(proplists:get_value("allow", OptionsHeaders), ",?\s"),
+    true = lists:all(fun(M) -> lists:member(M, ExpectedMethods) end, Methods),
+
+    %% Ranges
+    {ok, {{"HTTP/1.1", 200, _ReasonPhrase}, _Headers, Body}} =
+	httpc:request(get, {?config(root_url, Config) ++
+				binary_to_list(Id) ++ "/visits",
+			    []}, [], []),
+    B = jsx:decode(list_to_binary(Body)),
+    Default = ?config(default_offset, Config),
+    Default = length(proplists:get_value(<<"visits">>, B)),
+    Meta = proplists:get_value(<<"meta">>, B),
+    test_utils:validate_meta(40, 25, 0,
+			     Default,
+			     ?config(max_offset, Config), Meta),
+
+    {ok, {{"HTTP/1.1", 200, _ReasonPhrase}, _Headers1, Body1}} =
+	httpc:request(get, {?config(root_url, Config) ++
+				binary_to_list(Id) ++ "/paths",
+			    [{"Range", "paths=4-"}]}, [], []),
+    B1 = jsx:decode(list_to_binary(Body1)),
+    Meta1 = proplists:get_value(<<"meta">>, B1),
+    test_utils:validate_meta(8, 4, 4, 8, ?config(max_offset, Config), Meta1),
+
+    {ok, {{"HTTP/1.1", 400, _400ReasonPhrase}, _400Headers, []}} =
+	httpc:request(get, {?config(root_url, Config) ++
+				binary_to_list(Id) ++ "/paths",
+			    [{"Range", "paths=100-200"}]}, [], []).
+
 
 idempotent_calls_to_collection(Config) ->
     test_utils:generate_targets(55),
@@ -70,8 +117,8 @@ idempotent_calls_to_collection(Config) ->
     Default = length(proplists:get_value(<<"targets">>, B)),
     Meta = proplists:get_value(<<"meta">>, B),
     test_utils:validate_meta(55, 25, 0,
-		  Default,
-		  ?config(max_offset, Config), Meta),
+			     Default,
+			     ?config(max_offset, Config), Meta),
 
     {ok, {{"HTTP/1.1", 200, _ReasonPhrase}, _Headers1, Body1}} =
 	test_utils:build_request(get, [{"Range", "targets=10-15"}], Config),
