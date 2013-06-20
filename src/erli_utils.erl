@@ -109,13 +109,16 @@ to_proplist(#target{id=Id, record_number=_RN, url=Url, last_modified=LM,
      {<<"lastModified">>, LM},
      {<<"rels">>,
       [{<<"targetUrl">>, Url},
+       {<<"paths">>, <<"/api/targets/", Id/bitstring, "/paths">>},
+       {<<"visits">>, <<"/api/targets/", Id/bitstring, "/visits">>},
        {<<"thumbnail">>, <<"/static/thumbnails/", Thumbnail/bitstring>>}]}];
-to_proplist(#path{id=Id, record_number=_RN, target_id=TId, is_banned=B}) ->
+to_proplist(#path{id=Id, record_number=_RN, target_id=_, is_banned=B}) ->
     [{<<"id">>, Id},
      {<<"href">>, <<"/api/paths/", Id/bitstring>>},
      {<<"bannedStatus">>, B},
      {<<"rels">>,
-      [{<<"target">>, <<"/api/targets/", TId/bitstring>>}]}];
+      [{<<"target">>, <<"/api/paths/", Id/bitstring, "/target">>},
+       {<<"visits">>, <<"/api/paths/", Id/bitstring, "/visits">>}]}];
 to_proplist(#visit{id=Id, path_id=PId, geo_location=Loc, time=Time}) ->
     [{<<"id">>, Id},
      {<<"href">>, <<"/api/visits/", Id/bitstring>>},

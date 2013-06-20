@@ -211,8 +211,15 @@ idempotent_calls_to_entity(Config) ->
     Rels = proplists:get_value(
 	     <<"rels">>, proplists:get_value(<<"paths">>, B)),
     Id = Target#target.id,
-    <<"/api/targets/", Id/bitstring>> =
-	proplists:get_value(<<"target">>, Rels),
+    TUrl = proplists:get_value(<<"target">>, Rels),
+    {ok, {{"HTTP/1.1", 200, _ReasonPhrase}, Headers1, Body1}} =
+	httpc:request(
+	  get,
+	  {"http://localhost:" ++ ?config(port, Config) ++ binary_to_list(TUrl),
+	   []}, [], []),
+
+    B1 = jsx:decode(list_to_binary(Body1)),
+    Id = proplists:get_value(<<"id">>, proplists:get_value(<<"targets">>, B1)),
 
     {ok, {{"HTTP/1.1", 200, _ReasonPhrase}, Headers, []}} =
 	test_utils:build_request(head, Path#path.id, Config),
