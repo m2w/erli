@@ -173,16 +173,17 @@ targets_requiring_thumbnail() ->
 
 -spec list_missing_thumbs() -> [#target{}].
 list_missing_thumbs() ->
-    mnesia:dirty_select(targets, [{#target{screenshot_id='$1', _='_'},
-				   [{'=:=', '$1', undefined}], ['$_']}]).
+    mnesia:dirty_select(targets, [{#target{has_screenshot='$1', _='_'},
+				   [{'=:=', '$1', false}], ['$_']}]).
 
 -spec list_outdated_thumbs() -> [#target{}].
 list_outdated_thumbs() ->
     Lim = erli_utils:get_env(thumbnail_age_limit),
     MaxAge = erli_utils:unix_timestamp() - Lim*24*60*60,
-    mnesia:dirty_select(targets, [{#target{last_modified='$1', _='_'},
-				   [{'=<', '$1', MaxAge}],
-				   ['$_']}]).
+    mnesia:dirty_select(targets,
+			[{#target{last_modified='$1', has_screenshot='$2', _='_'},
+			  [{'=<', '$1', MaxAge}, {'=:=', '$2', true}],
+			  ['$_']}]).
 
 -spec create_tables([node()]) -> ok.
 create_tables(Nodes) ->

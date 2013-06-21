@@ -27,7 +27,7 @@
 		 last_modified :: unix_timestamp(),
 		 is_banned=false :: boolean(),
 		 flag_count=0 :: non_neg_integer(),
-		 screenshot_id=undefined :: undefined | id()}).
+		 has_screenshot=false :: boolean()}).
 
 %% @doc Contains all information on a shortened URL.
 %% This includes links to all related data.

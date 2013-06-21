@@ -12,7 +12,7 @@ if (system.args.length !== 3) {
     page.viewportSize = { width: 800, height: 600 };
     page.open(address, function (status) {
 	if (status !== 'success') {
-	    phantom.exit();
+	    phantom.exit(1);
 	} else {
 	    window.setTimeout(function () {
 		page.render(output);
