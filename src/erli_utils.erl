@@ -96,7 +96,7 @@ meta_proplist(CollectionType, {Start, End}) ->
 
 -spec to_proplist(object()) -> proplist().
 to_proplist(#target{id=Id, record_number=_RN, url=Url, last_modified=LM,
-		    is_banned=B, flag_count=FC, has_screenshot=SC}) ->
+		    is_banned=B, flag_count=FC, has_thumbnail=SC}) ->
     Thumbnail =
 	case SC of
 	    false -> get_env(thumbnail_placeholder);

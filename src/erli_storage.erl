@@ -19,7 +19,8 @@
 
 %% Utility API
 -export([setup_tables/1,
-	 targets_requiring_thumbnail/0]).
+	 targets_requiring_thumbnail/0,
+	 thumbnail_generated/1]).
 
 -export_types([conflict_data/0]).
 
@@ -170,8 +171,9 @@ targets_requiring_thumbnail() ->
 
 -spec thumbnail_generated(#target{}) -> ok.
 thumbnail_generated(Target) ->
-    NT = Target#target{has_thumbnail=true},
-    ok.
+    mnesia:dirty_write(targets,
+		       Target#target{has_thumbnail=true,
+				     last_modified=erli_utils:unix_timestamp()}).
 
 %%-----------------------------------------------------------
 %% Internal Methods
