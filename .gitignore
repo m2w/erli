@@ -2,3 +2,4 @@ ebin/
 Mnesia.*
 log/
 ct/logs/
+*.jpeg
