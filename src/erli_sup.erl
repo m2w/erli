@@ -52,5 +52,8 @@ init([]) ->
     Webmachine = {webmachine_mochiweb,
 		  {webmachine_mochiweb, start, [Config]},
 		  permanent, 5000, worker, [mochiweb_socket_server]},
-    Processes = [Webmachine],
+    Thumbs = {erli_thumbnails,
+		  {erli_thumbnails, start, []},
+		  permanent, 5000, worker, []},
+    Processes = [Webmachine, Thumbs],
     {ok, {{one_for_one, 10, 10}, Processes}}.
