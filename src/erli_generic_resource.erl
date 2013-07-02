@@ -13,7 +13,8 @@
 	 content_types_provided/2, delete_completed/2,
 	 delete_resource/2, generate_etag/2, init/1,
 	 malformed_request/2, options/2, previously_existed/2,
-	 process_post/2, resource_exists/2]).
+	 process_post/2, resource_exists/2,
+	 finish_request/2]).
 
 -include("models.hrl").
 
@@ -39,13 +40,17 @@ init([InitialState]) -> {ok, InitialState}.
 -spec allowed_methods(rd(), initial_resource_state()) ->
 			     {[atom()], rd(), initial_resource_state()}.
 allowed_methods(RD, {_Resource, _Relation} = Ctx) ->
-    {['GET', 'HEAD', 'OPTIONS'], RD, Ctx};
+    NRD = wrq:set_resp_header("Access-Control-Allow-Methods", "GET", RD),
+    {['GET', 'HEAD', 'OPTIONS'], NRD, Ctx};
 allowed_methods(RD, Ctx) when ?is_visit_type(Ctx) ->
-    {['GET', 'HEAD', 'OPTIONS'], RD, Ctx};
+    NRD = wrq:set_resp_header("Access-Control-Allow-Methods", "GET", RD),
+    {['GET', 'HEAD', 'OPTIONS'], NRD, Ctx};
 allowed_methods(RD, Ctx) when ?is_collection(Ctx) ->
-    {['GET', 'POST', 'HEAD', 'OPTIONS'], RD, Ctx};
+    NRD = wrq:set_resp_header("Access-Control-Allow-Methods", "GET, POST", RD),
+    {['GET', 'POST', 'HEAD', 'OPTIONS'], NRD, Ctx};
 allowed_methods(RD, Ctx) ->
-    {['GET', 'DELETE', 'HEAD', 'OPTIONS'], RD, Ctx}.
+    NRD = wrq:set_resp_header("Access-Control-Allow-Methods", "GET, DELETE", RD),
+    {['GET', 'DELETE', 'HEAD', 'OPTIONS'], NRD, Ctx}.
 
 -spec malformed_request(rd(), object_type()) ->
 			       {boolean(), rd(), object_type()};
@@ -231,6 +236,20 @@ delete_completed(RD, {_ObjectType, Obj} = Ctx) when is_record(Obj, target) ->
 delete_completed(RD, {_ObjectType, Obj} = Ctx) when is_record(Obj, path) ->
     {Obj#path.is_banned, RD, Ctx}.
 
+%% @doc
+%% Handles CORS whitelisting and sets a caching policy to prevent overly
+%% aggressive caching by clients.
+-spec finish_request(rd(), {object_type(), object()} |
+		     {collection_type(), collection()}) ->
+			    {true, rd(), {object_type(), object()} |
+			     {collection_type(), collection()}}.
+finish_request(RD, Ctx) ->
+    WL = erli_utils:get_env(cors_whitelist),
+    RD1 = wrq:set_resp_header("Cache-Control",
+			       "max-age=86400, must-revalidate", RD),
+    RD2 = wrq:set_resp_header("Access-Control-Allow-Origin", WL, RD1),
+    RD3 = wrq:set_resp_header("Access-Control-Allow-Headers", "*", RD2),
+    {true, RD3, Ctx}.
 
 %%----------------------------------------------------------
 %% Internal Methods
