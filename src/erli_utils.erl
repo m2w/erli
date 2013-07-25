@@ -20,7 +20,8 @@
 	 generate_etag/1,
 	 unix_timestamp/0,
 	 parse_range_header/2,
-	 build_content_range_header/2]).
+	 build_content_range_header/2,
+	 run/1]).
 
 -include("models.hrl").
 -include_lib("webmachine/include/webmachine.hrl").
@@ -32,6 +33,7 @@
 -type file_path() :: string().
 -type maybe_int() :: [] | integer().
 -type etag() :: string().
+-type exit_status() :: non_neg_integer().
 
 %%-----------------------------------------------------------
 %% API Methods
@@ -189,9 +191,29 @@ get_location(Ip) ->
     {ok, Rec} = egeoip:lookup(Ip),
     list_to_binary(egeoip:get(Rec, country_code)).
 
+-spec run(string()) -> {exit_status(), iolist()}.
+run(Cmd) ->
+    Opt = [stream, exit_status, use_stdio, stderr_to_stdout, in, eof],
+    P = open_port({spawn, Cmd}, Opt),
+    get_data(P, []).
+
+
 %%-----------------------------------------------------------
 %% Internal Methods
 %%-----------------------------------------------------------
+
+-spec get_data(port(), iolist()) -> {exit_status(), iolist()}.
+get_data(P, D) ->
+    receive
+	{P, {data, D1}} ->
+	    get_data(P, [D|D1]);
+	{P, eof} ->
+	    port_close(P),
+	    receive
+		{P, {exit_status, N}} ->
+		    {N, lists:reverse(D)}
+	    end
+    end.
 
 -spec parse_range(string(), collection_type()) ->
 			 range() |

@@ -30,6 +30,7 @@ start() ->
     gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
 
 generate_thumbnails() ->
+    error_logger:info_msg("[INFO] Initiating thumbnail collection"),
     gen_server:cast(?SERVER, gen_thumbs).
 
 %%-----------------------------------------------------------
@@ -72,10 +73,10 @@ grab([T|Targets], {Exe, ThumbnailDir} = Ctx) ->
     ThumbnailPath = filename:join([ThumbnailDir,
 				   <<(T#target.id)/bitstring, ".jpeg">>]),
     Cmd = <<Exe/bitstring, " ",  TUrl/bitstring, " ", ThumbnailPath/bitstring>>,
-    case os:cmd(binary_to_list(Cmd)) of
-	0 ->
+    case erli_utils:run(binary_to_list(Cmd)) of
+	{0, _} ->
 	    erli_storage:thumbnail_generated(T);
-	_ ->
+	{_, _ErrorDesc} ->
 	    error_logger:info_msg(
 	      "[ERROR] Generation of a thumbnail for ~s failed~n", [TUrl])
     end,
