@@ -75,6 +75,7 @@ grab([T|Targets], {Exe, ThumbnailDir} = Ctx) ->
     Cmd = <<Exe/bitstring, " ",  TUrl/bitstring, " ", ThumbnailPath/bitstring>>,
     case erli_utils:run(binary_to_list(Cmd)) of
 	{0, _} ->
+	    error_logger:info_msg("[INFO] Generated thumbnail"),
 	    erli_storage:thumbnail_generated(T);
 	{_, _ErrorDesc} ->
 	    error_logger:info_msg(
@@ -82,4 +83,5 @@ grab([T|Targets], {Exe, ThumbnailDir} = Ctx) ->
     end,
     grab(Targets, Ctx);
 grab([], _) ->
+    error_logger:info_msg("[INFO] Finished thumbnail generation"),
     ok.

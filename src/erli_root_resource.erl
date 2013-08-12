@@ -22,6 +22,7 @@
 %% Webmachine Callbacks
 %%-----------------------------------------------------------
 
+-spec init(term()) -> {ok, [tuple()]}.
 init(_Options) ->
     Data = jsx:encode([{<<"title">>, <<"erli API">>},
 		       {<<"description">>,
