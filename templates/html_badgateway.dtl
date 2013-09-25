@@ -1,9 +1,0 @@
-{% extends "base.dtl" %}
-
-{% block title %}bad gateway{% endblock %}
-
-{% block heading %}bad gateway{% endblock %}
-
-{% block body %}
-	<p>Something caused <strong>erli</strong> to receive a broken request.</p>
-{% endblock %}

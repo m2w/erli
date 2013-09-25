@@ -1,5 +1,0 @@
-{
-    "status": 400,
-    "message": "bad request",
-    "additional_info": "your request does not comply with the erli API"
-}

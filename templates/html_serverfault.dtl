@@ -1,9 +1,0 @@
-{% extends "base.dtl" %}
-
-{% block title %}internal error{% endblock %}
-
-{% block heading %}internal error{% endblock %}
-
-{% block body %}
-	<p>Whoops! The server just ran across some code that it couldn't handle. Your request cannot be processed further. A team of highly trained monkeys is working hard to fix this.</p>
-{% endblock %}

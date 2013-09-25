@@ -1,9 +1,0 @@
-{% extends "base.dtl" %}
-
-{% block title %}bad request{% endblock %}
-
-{% block heading %}bad request{% endblock %}
-
-{% block body %}
-	<p>You're asking <strong>erli</strong> to do something it's not supposed to...</p>
-{% endblock %}

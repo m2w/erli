@@ -1,9 +1,0 @@
-{% extends "base.dtl" %}
-
-{% block title %}service unavailable{% endblock %}
-
-{% block heading %}service unavailable{% endblock %}
-
-{% block body %}
-	<p><strong>erli</strong> is currently not available.</p>
-{% endblock %}

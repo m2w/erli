@@ -1,9 +1,0 @@
-{% extends "base.dtl" %}
-
-{% block title %}forbidden{% endblock %}
-
-{% block heading %}forbidden{% endblock %}
-
-{% block body %}
-	<p>Sorry, but what you're attempting to do is forbidden.</p>
-{% endblock %}

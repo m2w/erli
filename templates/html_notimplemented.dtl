@@ -1,9 +1,0 @@
-{% extends "base.dtl" %}
-
-{% block title %}method not implemented{% endblock %}
-
-{% block heading %}method not implemented{% endblock %}
-
-{% block body %}
-	<p>You just tried to do something that <strong>erli</strong> can't or isn't supposed to handle (yet).</p>
-{% endblock %}
