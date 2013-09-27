@@ -1,9 +1,20 @@
 # erli
 
-**erli** is an Erlang based URL shortener. It comes in two parts, the frontend, which is written in angular.js and the backend, based on webmachine.
+**erli** is an Erlang based URL shortener.
 
-It is also a more involved experiment with both REST and webmachine as an abstraction of it. **erli** comes with custom URLs, simple statistics for each shortened URL and optional landing pages (that include screenshots of the target website).
+It started as a more involved experiment with REST and webmachine as an abstraction of it. **erli** comes with custom URLs, simple statistics for each shortened URL and optional landing pages (that include screenshots of the target website).
 
+## Status
+
+**erli** is currently still undergoing a rewrite. Remaining TODOs:
+
+[ ] (Re-)Implement an error handler and adapt tests accordingly
+[ ] Review and optimize test quality and coverage
+[ ] A proper release
+[ ] An internal API endpoint either as based on a binary protocol over tcp (cool) or as rpc calls (simple)
+[ ] A simple HTTP frontend
+[ ] Test suite(s) for thumbnail generation related components
+[ ] A demo instance (without thumbnail generation)
 
 ## The backend
 
