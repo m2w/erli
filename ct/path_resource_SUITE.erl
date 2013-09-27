@@ -117,8 +117,7 @@ idempotent_calls_to_collection(Config) ->
     B1 = jsx:decode(list_to_binary(Body1)),
     Meta1 = proplists:get_value(<<"meta">>, B1),
     test_utils:validate_meta(30, 15, 3, 18, ?config(max_offset, Config), Meta1),
-
-    {ok, {{"HTTP/1.1", 400, _400ReasonPhrase}, _400Headers, []}} =
+     {ok, {{"HTTP/1.1", 400, _400ReasonPhrase}, _400Headers, _400Body}} =
 	test_utils:build_request(get, [{"Range", "paths=100-90"}], Config).
 
 idempotent_calls_to_empty_collection(Config) ->
@@ -263,7 +262,7 @@ delete_entity(Config) ->
     {ok, {{"HTTP/1.1", 204, _204ReasonPhrase}, _204Headers, []}} =
 	test_utils:build_request(delete, AlmostBannedPath#path.id, Config),
 
-    {ok, {{"HTTP/1.1", 410, _410ReasonPhrase}, _410Headers, []}} =
+    {ok, {{"HTTP/1.1", 410, _410ReasonPhrase}, _410Headers, _410Body}} =
 	test_utils:build_request(get, AlmostBannedPath#path.id, Config),
 
     StoredObj = erli_storage:read(path,

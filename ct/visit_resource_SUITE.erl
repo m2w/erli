@@ -76,7 +76,7 @@ idempotent_calls_to_collection(Config) ->
     Meta1 = proplists:get_value(<<"meta">>, B1),
     test_utils:validate_meta(60, 41, 9, 50, ?config(max_offset, Config), Meta1),
 
-    {ok, {{"HTTP/1.1", 400, _400ReasonPhrase}, _400Headers, []}} =
+    {ok, {{"HTTP/1.1", 400, _400ReasonPhrase}, _400Headers, _400Body}} =
 	test_utils:build_request(get, [{"Range", "visits=0-100"}], Config).
 
 idempotent_calls_to_empty_collection(Config) ->

@@ -101,7 +101,7 @@ relationship_lookups(Config) ->
     Meta1 = proplists:get_value(<<"meta">>, B1),
     test_utils:validate_meta(8, 4, 4, 8, ?config(max_offset, Config), Meta1),
 
-    {ok, {{"HTTP/1.1", 400, _400ReasonPhrase}, _400Headers, []}} =
+    {ok, {{"HTTP/1.1", 400, _400ReasonPhrase}, _400Headers, _400Body}} =
 	httpc:request(get, {?config(root_url, Config) ++
 				binary_to_list(Id) ++ "/paths",
 			    [{"Range", "paths=100-200"}]}, [], []).
@@ -126,7 +126,7 @@ idempotent_calls_to_collection(Config) ->
     Meta1 = proplists:get_value(<<"meta">>, B1),
     test_utils:validate_meta(55, 5, 10, 15, ?config(max_offset, Config), Meta1),
 
-    {ok, {{"HTTP/1.1", 400, _400ReasonPhrase}, _400Headers, []}} =
+    {ok, {{"HTTP/1.1", 400, _400ReasonPhrase}, _400Headers, _400Body}} =
 	test_utils:build_request(get, [{"Range", "targets=-90000"}], Config).
 
 idempotent_calls_to_empty_collection(Config) ->
