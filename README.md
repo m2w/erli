@@ -8,13 +8,14 @@ It started as a more involved experiment with REST and webmachine as an abstract
 
 **erli** is currently still undergoing a rewrite. Remaining TODOs:
 
-[ ] Redesign the storage backend to be an included application that allows mnesia node management etc
+[ ] Redesign the storage backend to be a separate application to be included in the release that allows mnesia node management etc
+[ ] A simple HTTP frontend
 [ ] (Re-)Implement an error handler and adapt tests accordingly
 [ ] Review and optimize test quality and coverage
-[ ] A proper release
 [ ] An internal API endpoint either as based on a binary protocol over tcp (cool) or as rpc calls (simple)
-[ ] A simple HTTP frontend
 [ ] Test suite(s) for thumbnail generation related components
+[ ] Refactor the entire code base into 4 distinct applications (erli, erli\_frontend, erli\_backend, erli\_storage)
+[ ] A proper release
 [ ] A demo instance (without thumbnail generation)
 
 ## The backend
