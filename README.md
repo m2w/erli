@@ -8,6 +8,7 @@ It started as a more involved experiment with REST and webmachine as an abstract
 
 **erli** is currently still undergoing a rewrite. Remaining TODOs:
 
+[ ] Redesign the storage backend to be an included application that allows mnesia node management etc
 [ ] (Re-)Implement an error handler and adapt tests accordingly
 [ ] Review and optimize test quality and coverage
 [ ] A proper release

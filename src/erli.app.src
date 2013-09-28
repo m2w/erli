@@ -1,18 +1,14 @@
 %%-*- mode: erlang -*-
 {application, erli,
- [
-  {description, "A URL shortener"},
-  {vsn, "0.1a"},
-  {modules, []},
-  {registered, []},
-  {applications, [
-                  kernel,
+ [{description, "A URL shortener"},
+  {vsn, "0.1"},
+  {modules, [erli_app, erli_forms, erli_generic_resource, erli_root_resource,
+	     erli_storage, erli_sup, erli_thumbnails, erli_utils]},
+  {registered, [erli_sup, webmachine_mochiweb, erli_thumbnails]},
+  {applications, [kernel,
                   stdlib,
                   inets,
                   crypto,
-                  mochiweb,
-                  webmachine
-                 ]},
+		  egeoip]},
   {mod, { erli_app, []}},
-  {env, []}
- ]}.
+  {env, []}]}.
