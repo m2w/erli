@@ -22,9 +22,10 @@ render_error(Code, Req, Reason) ->
 	{true, _} ->
 	    Req:response_body();
 	{false, _} ->
-	    {ok, NReq} = Req:add_response_header("Content-Type",
-						 "application/json", Req),
-	    gen_body(Code, NReq, Reason)
+	    NReq = Req:trim_state(),
+	    {ok, ReqState} = NReq:add_response_header("Content-Type",
+						      "application/json"),
+	    gen_body(Code, ReqState, Reason)
     end.
 
 %%----------------------------------------------------------
