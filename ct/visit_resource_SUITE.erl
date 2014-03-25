@@ -61,32 +61,32 @@ idempotent_calls_to_collection(Config) ->
     test_utils:generate_visits(60),
 
     {ok, {{"HTTP/1.1", 200, _ReasonPhrase}, _Headers, Body}} =
-	test_utils:build_request(get, Config),
+        test_utils:build_request(get, Config),
     B = jsx:decode(list_to_binary(Body)),
     DefaultOffset = ?config(default_offset, Config),
     DefaultOffset = length(proplists:get_value(<<"visits">>, B)),
     Meta = proplists:get_value(<<"meta">>, B),
     test_utils:validate_meta(60, 25, 0,
-		  DefaultOffset,
-		  ?config(max_offset, Config), Meta),
+                  DefaultOffset,
+                  ?config(max_offset, Config), Meta),
 
     {ok, {{"HTTP/1.1", 200, _ReasonPhrase}, _Headers1, Body1}} =
-	test_utils:build_request(get, [{"Range", "visits=9-50"}], Config),
+        test_utils:build_request(get, [{"Range", "visits=9-50"}], Config),
     B1 = jsx:decode(list_to_binary(Body1)),
     Meta1 = proplists:get_value(<<"meta">>, B1),
     test_utils:validate_meta(60, 41, 9, 50, ?config(max_offset, Config), Meta1),
 
     {ok, {{"HTTP/1.1", 400, _400ReasonPhrase}, _400Headers, _400Body}} =
-	test_utils:build_request(get, [{"Range", "visits=0-100"}], Config).
+        test_utils:build_request(get, [{"Range", "visits=0-100"}], Config).
 
 idempotent_calls_to_empty_collection(Config) ->
     ExpectedMethods = [<<"GET">>, <<"HEAD">>, <<"OPTIONS">>],
 
     %% GET
     {ok, {{"HTTP/1.1", 200, _ReasonPhrase}, Headers, Body}} =
-	test_utils:build_request(get, Config),
+        test_utils:build_request(get, Config),
     {ok, {{"HTTP/1.1", 200, _ReasonPhrase}, Headers, []}} =
-	test_utils:build_request(head, Config),
+        test_utils:build_request(head, Config),
     "application/json" = proplists:get_value("content-type", Headers),
     "visits 0-0/0" = proplists:get_value("content-range", Headers),
     B = jsx:decode(list_to_binary(Body)),
@@ -96,7 +96,7 @@ idempotent_calls_to_empty_collection(Config) ->
 
     %% OPTIONS
     {ok, {{"HTTP/1.1", 200, _ReasonPhrase}, OptionsHeaders, []}} =
-	test_utils:build_request(options, Config),
+        test_utils:build_request(options, Config),
     "0" = proplists:get_value("content-length", OptionsHeaders),
     "visits" = proplists:get_value("accept-ranges", OptionsHeaders),
     Methods = re:split(proplists:get_value("allow", OptionsHeaders), ",?\s"),
@@ -109,18 +109,18 @@ idempotent_calls_to_entity(Config) ->
 
     Visit = lists:nth(1, Visits),
     {ok, {{"HTTP/1.1", 200, _ReasonPhrase}, Headers, Body}} =
-	test_utils:build_request(get, Visit#visit.id, Config),
+        test_utils:build_request(get, Visit#visit.id, Config),
     B = jsx:decode(list_to_binary(Body)),
     Rels = proplists:get_value(
-	     <<"rels">>, proplists:get_value(<<"visits">>, B)),
+             <<"rels">>, proplists:get_value(<<"visits">>, B)),
     Id = Visit#visit.path_id,
     <<"/api/paths/", Id/bitstring>> =
-	proplists:get_value(<<"path">>, Rels),
+        proplists:get_value(<<"path">>, Rels),
 
     {ok, {{"HTTP/1.1", 200, _ReasonPhrase}, Headers, []}} =
-	test_utils:build_request(head, Visit#visit.id, Config),
+        test_utils:build_request(head, Visit#visit.id, Config),
     {ok, {{"HTTP/1.1", 200, _ReasonPhrase}, OptionsHeaders, []}} =
-	test_utils:build_request(options, Visit#visit.id, Config),
+        test_utils:build_request(options, Visit#visit.id, Config),
 
     "0" = proplists:get_value("content-length", OptionsHeaders),
     Methods = re:split(proplists:get_value("allow", OptionsHeaders), ",?\s"),
@@ -128,8 +128,8 @@ idempotent_calls_to_entity(Config) ->
 
     %% missing resource
     {ok, {{"HTTP/1.1", 404, _404ReasonPhrase}, _404Headers, _404Body}} =
-	test_utils:build_request(get, <<"rubbish-id">>, Config),
+        test_utils:build_request(get, <<"rubbish-id">>, Config),
     {ok, {{"HTTP/1.1", 404, _404ReasonPhrase}, _404Headers, []}} =
-	test_utils:build_request(head, <<"rubbish-id">>, Config),
+        test_utils:build_request(head, <<"rubbish-id">>, Config),
     {ok, {{"HTTP/1.1", 200, _ReasonPhrase}, OptionsHeaders, []}} =
-	test_utils:build_request(options, <<"rubbish-id">>, Config).
+        test_utils:build_request(options, <<"rubbish-id">>, Config).

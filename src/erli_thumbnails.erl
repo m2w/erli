@@ -12,11 +12,11 @@
 
 %% API
 -export([start/0,
-	 generate_thumbnails/0]).
+         generate_thumbnails/0]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-	 terminate/2, code_change/3]).
+         terminate/2, code_change/3]).
 
 -define(SERVER, ?MODULE).
 
@@ -71,15 +71,15 @@ code_change(_OldVsn, State, _Extra) ->
 grab([T|Targets], {Exe, ThumbnailDir} = Ctx) ->
     TUrl = T#target.url,
     ThumbnailPath = filename:join([ThumbnailDir,
-				   <<(T#target.id)/bitstring, ".jpeg">>]),
+                                   <<(T#target.id)/bitstring, ".jpeg">>]),
     Cmd = <<Exe/bitstring, " ",  TUrl/bitstring, " ", ThumbnailPath/bitstring>>,
     case erli_utils:run(binary_to_list(Cmd)) of
-	{0, _} ->
-	    error_logger:info_msg("[INFO] Generated thumbnail"),
-	    erli_storage:thumbnail_generated(T);
-	{_, _ErrorDesc} ->
-	    error_logger:info_msg(
-	      "[ERROR] Generation of a thumbnail for ~s failed~n", [TUrl])
+        {0, _} ->
+            error_logger:info_msg("[INFO] Generated thumbnail"),
+            erli_storage:thumbnail_generated(T);
+        {_, _ErrorDesc} ->
+            error_logger:info_msg(
+              "[ERROR] Generation of a thumbnail for ~s failed~n", [TUrl])
     end,
     grab(Targets, Ctx);
 grab([], _) ->

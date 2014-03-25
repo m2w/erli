@@ -10,18 +10,18 @@
 
 %% API
 -export([to_proplist/1,
-	 get_env/1,
-	 priv_dir/1,
-	 obj_type_to_col_type/1,
-	 get_location/1,
-	 add_json_response/2,
-	 int_to_bitstring/1,
-	 meta_proplist/2,
-	 generate_etag/1,
-	 unix_timestamp/0,
-	 parse_range_header/2,
-	 build_content_range_header/2,
-	 run/1]).
+         get_env/1,
+         priv_dir/1,
+         obj_type_to_col_type/1,
+         get_location/1,
+         add_json_response/2,
+         int_to_bitstring/1,
+         meta_proplist/2,
+         generate_etag/1,
+         unix_timestamp/0,
+         parse_range_header/2,
+         build_content_range_header/2,
+         run/1]).
 
 -include("models.hrl").
 -include_lib("webmachine/include/webmachine.hrl").
@@ -45,7 +45,7 @@ build_content_range_header(Type, Meta) ->
     End = proplists:get_value(<<"rangeEnd">>, Meta),
     Start = proplists:get_value(<<"rangeStart">>, Meta),
     atom_to_list(Type) ++ " " ++ integer_to_list(Start) ++ "-" ++
-	integer_to_list(End) ++ "/" ++ integer_to_list(ColSize).
+        integer_to_list(End) ++ "/" ++ integer_to_list(ColSize).
 
 
 -spec priv_dir(module()) -> file_path().
@@ -62,48 +62,48 @@ priv_dir(Mod) ->
 -spec get_env(atom()) -> undefined | term().
 get_env(Key) ->
     case application:get_env(Key) of
-	undefined ->
-	    undefined;
-	{ok, Val} ->
-	    Val
+        undefined ->
+            undefined;
+        {ok, Val} ->
+            Val
     end.
 
 
 -spec add_json_response(#wm_reqdata{}, bitstring()) -> #wm_reqdata{}.
 add_json_response(RD, Body) ->
     wrq:set_resp_body(Body,
-		      wrq:set_resp_header("Content-Type",
-					  "application/json", RD)).
+                      wrq:set_resp_header("Content-Type",
+                                          "application/json", RD)).
 
 
 -spec meta_proplist(collection_type(), range()) -> meta_data().
 meta_proplist(CollectionType, {Start, End}) ->
     Total = erli_storage:count(CollectionType),
     M = [{<<"totalCollectionSize">>, Total},
-	 {<<"objectCount">>, End-Start},
-	 {<<"rangeStart">>, Start},
-	 {<<"rangeEnd">>, End},
-	 {<<"maxCollectionOffset">>, erli_utils:get_env(max_collection_offset)}],
+         {<<"objectCount">>, End-Start},
+         {<<"rangeStart">>, Start},
+         {<<"rangeEnd">>, End},
+         {<<"maxCollectionOffset">>, erli_utils:get_env(max_collection_offset)}],
     %% special case: less total objects than the default offset
     %% @TODO: this should be hotswapped out once the demo reaches over 25 records
     if End > Total ->
-	    M1 = lists:keyreplace(<<"objectCount">>,
-				  1, M, {<<"objectCount">>, Total}),
-	    lists:keyreplace(<<"rangeEnd">>,
-			     1, M1, {<<"rangeEnd">>, Total});
+            M1 = lists:keyreplace(<<"objectCount">>,
+                                  1, M, {<<"objectCount">>, Total}),
+            lists:keyreplace(<<"rangeEnd">>,
+                             1, M1, {<<"rangeEnd">>, Total});
        true ->
-	    M
+            M
     end.
 
 
 -spec to_proplist(object()) -> proplist().
 to_proplist(#target{id=Id, record_number=_RN, url=Url, last_modified=LM,
-		    is_banned=B, flag_count=FC, has_thumbnail=SC}) ->
+                    is_banned=B, flag_count=FC, has_thumbnail=SC}) ->
     Thumbnail =
-	case SC of
-	    false -> get_env(thumbnail_placeholder);
-	    true -> <<Id/bitstring, ".jpeg">>
-	end,
+        case SC of
+            false -> get_env(thumbnail_placeholder);
+            true -> <<Id/bitstring, ".jpeg">>
+        end,
     [{<<"id">>, Id},
      {<<"href">>, <<"/api/targets/", Id/bitstring>>},
      {<<"bannedStatus">>, B},
@@ -130,7 +130,7 @@ to_proplist(#visit{id=Id, path_id=PId, geo_location=Loc, time=Time}) ->
       [{<<"path">>, <<"/api/paths/", PId/bitstring>>}]}];
 to_proplist(Collection) when is_list(Collection) ->
     lists:foldl(fun(Obj, Acc) -> [to_proplist(Obj)|Acc]
-		end, [], Collection).
+                end, [], Collection).
 
 
 -spec int_to_bitstring(integer()) -> bitstring().
@@ -139,8 +139,8 @@ int_to_bitstring(Int) ->
 
 
 -spec obj_type_to_col_type(path) -> paths;
-			  (target) -> targets;
-			  (visit) -> visits.
+                          (target) -> targets;
+                          (visit) -> visits.
 obj_type_to_col_type(path) ->
     paths;
 obj_type_to_col_type(target) ->
@@ -154,8 +154,8 @@ generate_etag({ObjectType, Object}) when ?is_object(ObjectType) ->
     mochihex:to_hex(erlang:md5(jsx:encode(to_proplist(Object))));
 generate_etag({targets, {Meta, Collection}}) ->
     LMS = lists:sum(
-	    lists:map(fun(Obj) -> Obj#target.last_modified end,
-		      Collection)),
+            lists:map(fun(Obj) -> Obj#target.last_modified end,
+                      Collection)),
     MetaMD5 = erlang:md5(jsx:encode(Meta)),
     mochihex:to_hex(<<MetaMD5/binary, LMS/integer>>);
 generate_etag({paths, {Meta, Collection}}) ->
@@ -176,14 +176,14 @@ unix_timestamp() ->
 
 
 -spec parse_range_header(#wm_reqdata{}, collection_type()) ->
-				range() |
-				{error, invalid_range}.
+                                range() |
+                                {error, invalid_range}.
 parse_range_header(RD, CollectionType) ->
     Default = get_env(default_collection_offset),
     RH = wrq:get_req_header("Range", RD),
     case RH of
-	undefined -> {0, Default};
-	Val -> parse_range(string:strip(Val), CollectionType)
+        undefined -> {0, Default};
+        Val -> parse_range(string:strip(Val), CollectionType)
     end.
 
 -spec get_location(string()) -> bitstring().
@@ -205,29 +205,29 @@ run(Cmd) ->
 -spec get_data(port(), iolist()) -> {exit_status(), iolist()}.
 get_data(P, D) ->
     receive
-	{P, {data, D1}} ->
-	    get_data(P, [D|D1]);
-	{P, eof} ->
-	    port_close(P),
-	    receive
-		{P, {exit_status, N}} ->
-		    {N, lists:reverse(D)}
-	    end
+        {P, {data, D1}} ->
+            get_data(P, [D|D1]);
+        {P, eof} ->
+            port_close(P),
+            receive
+                {P, {exit_status, N}} ->
+                    {N, lists:reverse(D)}
+            end
     end.
 
 -spec parse_range(string(), collection_type()) ->
-			 range() |
-			 {error, invalid_range}.
+                         range() |
+                         {error, invalid_range}.
 parse_range(HeaderValue, CollectionType) ->
     M = atom_to_list(CollectionType),
     case re:run(HeaderValue, "(\\w+)=(\\d*)-(\\d*)",
-		[{capture, all_but_first, list}]) of
-	{match, [Unit, X, Y]} when Unit =:= M ->
-	    Max = erli_storage:count(CollectionType),
-	    MaxOffset = erli_utils:get_env(max_collection_offset),
-	    extract_range(to_int(X), to_int(Y), MaxOffset, Max);
-	_ -> % wrong unit specified or otherwise invalid range spec
-	    {error, invalid_range}
+                [{capture, all_but_first, list}]) of
+        {match, [Unit, X, Y]} when Unit =:= M ->
+            Max = erli_storage:count(CollectionType),
+            MaxOffset = erli_utils:get_env(max_collection_offset),
+            extract_range(to_int(X), to_int(Y), MaxOffset, Max);
+        _ -> % wrong unit specified or otherwise invalid range spec
+            {error, invalid_range}
     end.
 
 
@@ -240,8 +240,8 @@ to_int(String) ->
     end.
 
 -spec extract_range(maybe_int(), maybe_int(), pos_integer(), pos_integer()) ->
-			   range() |
-			   {error, invalid_range}.
+                           range() |
+                           {error, invalid_range}.
 extract_range([], [], _, _) -> % unit=-
     {error, invalid_range};
 extract_range([], Y, MaxOffset, Max)

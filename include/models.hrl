@@ -22,27 +22,27 @@
 %% @doc Contains all information on a target URL.
 %% This includes links to all related data.
 -record(target, {id :: id(),
-		 record_number :: incremental_id(),
-		 url :: url(),
-		 last_modified :: unix_timestamp(),
-		 is_banned=false :: boolean(),
-		 flag_count=0 :: non_neg_integer(),
-		 has_thumbnail=false :: boolean()}).
+                 record_number :: incremental_id(),
+                 url :: url(),
+                 last_modified :: unix_timestamp(),
+                 is_banned=false :: boolean(),
+                 flag_count=0 :: non_neg_integer(),
+                 has_thumbnail=false :: boolean()}).
 
 %% @doc Contains all information on a shortened URL.
 %% This includes links to all related data.
 -record(path, {id :: id(),
-	       record_number :: incremental_id(),
-	       target_id :: id(),
-	       is_banned=false :: boolean()}).
+               record_number :: incremental_id(),
+               target_id :: id(),
+               is_banned=false :: boolean()}).
 
 %% @doc Represents a single visit to a shortened URL.
 %% Includes links to all related data.
 -record(visit, {id :: id(),
-		record_number :: incremental_id(),
-		path_id :: id(),
-		geo_location :: bitstring(),
-		time :: unix_timestamp()}).
+                record_number :: incremental_id(),
+                path_id :: id(),
+                geo_location :: bitstring(),
+                time :: unix_timestamp()}).
 
 %%-----------------------------------------------------------
 %% External Types

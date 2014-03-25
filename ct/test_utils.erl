@@ -9,16 +9,16 @@
 
 %% API
 -export([clear_all_mnesia_data/0,
-	 generate_targets/1,
-	 generate_paths/1,
-	 generate_paths/2,
-	 generate_visits/1,
-	 generate_visits/2,
-	 validate_meta/6,
-	 post_request/2,
-	 build_request/4,
-	 build_request/3,
-	 build_request/2]).
+         generate_targets/1,
+         generate_paths/1,
+         generate_paths/2,
+         generate_visits/1,
+         generate_visits/2,
+         validate_meta/6,
+         post_request/2,
+         build_request/4,
+         build_request/3,
+         build_request/2]).
 
 -include("models.hrl").
 -include_lib("common_test/include/ct.hrl").
@@ -71,7 +71,7 @@ validate_meta(TotalSize, ObjCount, RangeStart, RangeEnd, MaxOffset, Meta) ->
 
 post_request(Payload, Config) ->
     httpc:request(post, {?config(root_url, Config), [],
-			 "application/json", Payload}, [], []).
+                         "application/json", Payload}, [], []).
 
 
 build_request(Method, Config) ->
@@ -97,10 +97,10 @@ generate_paths(N, Targets, Acc) ->
     X = random:uniform(length(Targets)),
     Id = (lists:nth(X, Targets))#target.id,
     case erli_storage:create(#path{target_id=Id}) of
-	{error, Error} ->
-	    generate_paths(N, Targets, Acc);
-	P ->
-	    generate_paths(N - 1, Targets, [P|Acc])
+        {error, Error} ->
+            generate_paths(N, Targets, Acc);
+        P ->
+            generate_paths(N - 1, Targets, [P|Acc])
     end.
 
 
@@ -111,16 +111,16 @@ generate_visits(N, Paths, Acc) ->
     Id = (lists:nth(X, Paths))#path.id,
     Loc = erli_utils:get_location(gen_rand_ip()),
     case erli_storage:create(#visit{path_id=Id, geo_location=Loc}) of
-	{error, Error} ->
-	    generate_visits(N, Paths, Acc);
-	V ->
-	    generate_visits(N - 1, Paths, [V|Acc])
+        {error, Error} ->
+            generate_visits(N, Paths, Acc);
+        V ->
+            generate_visits(N - 1, Paths, [V|Acc])
     end.
 
 gen_rand_ip() ->
     Tuple = [integer_to_list(X) ||
-		X <- [random:uniform(255), random:uniform(255),
-		      random:uniform(255), random:uniform(255)]],
+                X <- [random:uniform(255), random:uniform(255),
+                      random:uniform(255), random:uniform(255)]],
     string:join(Tuple, ".").
 
 
@@ -129,10 +129,10 @@ generate_targets(0, Acc) ->
 generate_targets(N, Acc) ->
     Target = make_target(),
     case erli_storage:create(Target) of
-	{error, _} ->
-	    generate_targets(N, Acc);
-	T ->
-	    generate_targets(N - 1, [T|Acc])
+        {error, _} ->
+            generate_targets(N, Acc);
+        T ->
+            generate_targets(N - 1, [T|Acc])
     end.
 
 
@@ -153,5 +153,5 @@ generate_tld() ->
 
 generate_bin(Len) ->
     re:replace(base64:encode(crypto:rand_bytes(Len)),
-	       "[\/+=]", "",
-	       [global, {return, binary}]).
+               "[\/+=]", "",
+               [global, {return, binary}]).

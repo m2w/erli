@@ -9,11 +9,11 @@
 
 %% Webmachine Callbacks
 -export([init/1,
-	 allowed_methods/2,
-	 options/2,
-	 generate_etag/2,
-	 content_types_provided/2,
-	 as_json/2]).
+         allowed_methods/2,
+         options/2,
+         generate_etag/2,
+         content_types_provided/2,
+         as_json/2]).
 
 -include("models.hrl").
 -include_lib("webmachine/include/webmachine.hrl").
@@ -25,11 +25,11 @@
 -spec init(term()) -> {ok, [tuple()]}.
 init(_Options) ->
     Data = jsx:encode([{<<"title">>, <<"erli API">>},
-		       {<<"description">>,
-			<<"simple REST API to the erli URL shortening service">>},
-		       {<<"rels">>, [{<<"visits">>, <<"/api/visits/">>},
-				     {<<"paths">>, <<"/api/paths/">>},
-				     {<<"targets">>, <<"/api/targets">>}]}]),
+                       {<<"description">>,
+                        <<"simple REST API to the erli URL shortening service">>},
+                       {<<"rels">>, [{<<"visits">>, <<"/api/visits/">>},
+                                     {<<"paths">>, <<"/api/paths/">>},
+                                     {<<"targets">>, <<"/api/targets">>}]}]),
     {ok, Data}.
 
 

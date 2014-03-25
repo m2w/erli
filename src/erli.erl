@@ -8,8 +8,8 @@
 -module(erli).
 
 -export([start/0,
-	 start_link/0,
-	 stop/0]).
+         start_link/0,
+         stop/0]).
 
 %%-----------------------------------------------------------
 %% API Methods
@@ -57,6 +57,6 @@ ensure_started(App) ->
     case application:start(App) of
         ok ->
             ok;
-	{error, {already_started, App}} ->
+        {error, {already_started, App}} ->
             ok
     end.
