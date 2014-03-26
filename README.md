@@ -1,6 +1,6 @@
 # erli
 
-**NOTE**: erli is currently undergoing major changes, it is not stable in any way nor feature complete.
+**NOTE**: erli is being finalized, but still far from feature-complete. ETA: soon ;)
 
 **erli** is an Erlang based URL shortener.
 
@@ -16,6 +16,8 @@ It started as a more involved experiment with REST and webmachine as an abstract
 - [ ] Test suite(s) for thumbnail generation related components
 - [ ] A proper release
 - [ ] A demo instance (without thumbnail generation)
+
+To run the test suite, call `ct_run -logdir ./ct/logs -dir ./ct/ -include ./include/ -pa $PWD/ebin -pa $PWD/deps/*/ebin -erl_args -config $PWD/erli.config` from the erli root dir.
 
 ## The backend
 
