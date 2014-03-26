@@ -17,10 +17,10 @@
 
 start(_StartType, _StartArgs) ->
     case erli_sup:start_link() of
-	{ok, Pid} ->
-	    {ok, Pid};
-	Error ->
-	    Error
+        {ok, Pid} ->
+            {ok, Pid};
+        Error ->
+            Error
     end.
 
 stop(_State) ->

@@ -51,7 +51,9 @@ init([]) ->
                       {ok, Dir} -> Dir;
                       Dir -> Dir
                   end,
-    {ok, Dispatch} = file:consult(filename:join([DispatchDir, "dispatch.conf"])),
+    {ok, Dispatch} = file:consult(
+                       filename:join([DispatchDir, "dispatch.conf"])
+                      ),
     Config = [{ip, Ip},
               {port, Port},
               {log_dir, "priv/log"},
