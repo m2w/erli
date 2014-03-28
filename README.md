@@ -11,13 +11,11 @@ It started as a more involved experiment with REST and webmachine as an abstract
 
 **erli** is currently still undergoing a rewrite. Remaining TODOs:
 
-- [ ] (Re-)Implement an error handler and adapt tests accordingly
 - [ ] Review and optimize test quality and coverage
 - [ ] Test suite(s) for thumbnail generation related components
 - [ ] A proper release
-- [ ] A demo instance (without thumbnail generation)
 
-To run the test suite, call `ct_run -logdir ./ct/logs -dir ./ct/ -include ./include/ -pa $PWD/ebin -pa $PWD/deps/*/ebin -erl_args -config $PWD/erli.config` from the erli root dir.
+To run the test suite, call `ct_run -logdir $PWD/ct/logs -dir $PWD/ct/ -include $PWD/include/ -pa $PWD/ebin -pa $PWD/deps/*/ebin -erl_args -config $PWD/erli.config` from the erli root dir.
 
 ## The backend
 
