@@ -17,22 +17,7 @@ suite() ->
     [{timetrap,{seconds,30}}].
 
 init_per_suite(Config) ->
-    DataDir = ?config(data_dir, Config),
-    Priv = ?config(priv_dir, Config),
-
-    application:set_env(mnesia, dir, Priv),
-    application:set_env(webmachine, dispatch_dir, DataDir),
-    erli:start(),
-
-    {ok, DefaultOffset} = application:get_env(erli, default_collection_offset),
-    {ok, MaxOffset} = application:get_env(erli, max_collection_offset),
-    {ok, Port} = application:get_env(webmachine, port),
-
-    PortS = integer_to_list(Port),
-    RootUrl = "http://localhost:" ++ PortS ++ "/api/paths/",
-
-    [{default_offset, DefaultOffset}, {max_offset, MaxOffset},
-     {port, PortS}, {port_int, Port}, {root_url, RootUrl} | Config].
+    test_utils:init_suite(Config, paths).
 
 end_per_suite(_Config) ->
     erli:stop().

@@ -8,7 +8,8 @@
 -module(test_utils).
 
 %% API
--export([clear_all_mnesia_data/0,
+-export([init_suite/2,
+         clear_all_mnesia_data/0,
          generate_targets/1,
          generate_paths/1,
          generate_paths/2,
@@ -26,8 +27,26 @@
 %%-----------------------------------------------------------
 %% API Methods
 %%-----------------------------------------------------------
+%% @TODO: make this a gen_server so env vars can be kept in state
 
-%% @TODO: make gen_server so that the env vars can stay in state
+init_suite(Config, Resource) ->
+    DataDir = ?config(data_dir, Config),
+    Priv = ?config(priv_dir, Config),
+
+    application:set_env(mnesia, dir, Priv),
+    application:set_env(webmachine, dispatch_dir, DataDir),
+    erli:start(),
+
+    {ok, DefaultOffset} = application:get_env(erli, default_collection_offset),
+    {ok, MaxOffset} = application:get_env(erli, max_collection_offset),
+    {ok, Port} = application:get_env(webmachine, port),
+
+    PortS = integer_to_list(Port),
+    RootUrl = "http://localhost:" ++ PortS ++ "/api/" ++
+        atom_to_list(Resource) ++ "/",
+
+    [{default_offset, DefaultOffset}, {max_offset, MaxOffset},
+     {port, PortS}, {port_int, Port}, {root_url, RootUrl} | Config].
 
 clear_all_mnesia_data() ->
     mnesia:clear_table(counters),
